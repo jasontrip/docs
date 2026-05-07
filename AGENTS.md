@@ -31,3 +31,19 @@
 
 {/* Define what should and shouldn't be documented */}
 {/* Example: Don't document internal admin features */}
+
+## Cursor Cloud specific instructions
+
+### Services
+
+| Service | Command | Notes |
+|---------|---------|-------|
+| Dev server | `mintlify dev --port 3000` | Local preview at http://localhost:3000 |
+| Link checker | `mintlify broken-links` | Lint equivalent for docs; exits non-zero on broken links |
+
+### Caveats
+
+- The CLI binary is `mintlify` (not `mint`). The `mint dev` shorthand referenced in some Mintlify docs does not work in this environment.
+- The favicon warning (`Error generating favicons: ENOENT`) on `mintlify dev` startup is benign — the `docs.json` uses a remote URL for the favicon which the local CLI cannot resolve as a file path. It does not affect page rendering.
+- There is no `package.json` in this repo. The Mintlify CLI is installed globally via `npm install -g mintlify`.
+- Hot reload is built in: editing any `.mdx` file or `docs.json` triggers an automatic page refresh in the local dev server.
