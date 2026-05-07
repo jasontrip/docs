@@ -1,0 +1,64 @@
+---
+title: "What are Nyckel functions?"
+sidebarTitle: "Functions"
+description: "A Nyckel function is a trained ML model that takes text, image, or tabular input and returns predictions. Learn how functions work."
+---
+
+A Nyckel function is the core building block of the platform. It is a trainable machine learning model exposed as a REST endpoint — you define what it takes as input, what it predicts, and then train it by uploading labeled examples. Nyckel handles the model selection, training, and deployment automatically.
+
+## Function types
+
+| Type | Input | Output | Use case |
+|---|---|---|---|
+| **Classification** | Text, Image, or Tabular | Single label | Spam detection, image moderation, intent classification |
+| **Tags** | Text, Image, or Tabular | Multiple labels | Topic tagging, content labeling |
+| **Search** | Text or Image | Ranked results | Semantic search, similarity lookup |
+| **Detection** | Image | Bounding boxes + labels | Object detection, defect localization |
+| **OCR** | Image | Extracted text | Receipt scanning, document parsing |
+
+## Function lifecycle
+
+Every function follows the same lifecycle, regardless of type:
+
+<Steps>
+  <Step title="Create">
+    Call `POST /v1/functions` with a `name`, `input` type (`Text`, `Image`, or `Tabular`), and `output` type (e.g., `Classification`). The API returns a function `id`.
+  </Step>
+  <Step title="Add samples">
+    Upload input data using the samples endpoint (`POST /v1/functions/<functionId>/samples`). Samples can be uploaded with or without annotations.
+  </Step>
+  <Step title="Annotate">
+    Assign labels to samples either at upload time (via `annotation.labelId` in the request body) or later via the annotations endpoint.
+  </Step>
+  <Step title="Auto-train">
+    Nyckel trains a model automatically in the background whenever you add or update annotations. You do not need to trigger training manually.
+  </Step>
+  <Step title="Invoke">
+    Call `POST /v1/functions/<functionId>/invoke` with new input data. The API returns the predicted label and a confidence score.
+  </Step>
+  <Step title="Continuously improve">
+    The model retrains every time you annotate additional samples. Accuracy improves as you add more data.
+  </Step>
+</Steps>
+
+## The function ID
+
+Every function has a unique `id` returned when you create it (e.g., `function_abc123`). This `id` appears in the URL path of every API endpoint that operates on that function:
+
+```
+/v1/functions/<functionId>/invoke
+/v1/functions/<functionId>/samples
+/v1/functions/<functionId>/labels
+```
+
+Store the function `id` in your application configuration. IDs include a human-readable prefix — see [API rate limits and error handling](/concepts/api-throttling) for details on ID prefix conventions.
+
+## Auto-retraining
+
+Nyckel retrains your model automatically each time you add or annotate samples. There is no manual "train" step. The new model becomes active immediately after training completes, typically within seconds to a few minutes depending on dataset size.
+
+This means your function continuously improves as you review and annotate more data over time.
+
+## Pre-trained functions
+
+If you do not want to build a function from scratch, Nyckel provides a library of pre-trained classifiers at [nyckel.com/pretrained-classifiers](https://www.nyckel.com/pretrained-classifiers). These can be invoked immediately without any training data.

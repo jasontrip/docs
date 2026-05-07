@@ -1,0 +1,181 @@
+---
+title: "Search function sample management endpoints"
+sidebarTitle: "Samples"
+description: "Add text or image samples to a Nyckel search function's index. Samples are automatically encoded into semantic vectors and indexed without annotations."
+---
+
+Samples in a search function are the items that will be retrieved when you run a query. Unlike classification or tags, search samples do not need annotations — they are encoded into semantic vectors and indexed as-is. The more samples you add, the richer the search results.
+
+All sample endpoints require an `Authorization: Bearer <accessToken>` header.
+
+## Create a sample
+
+`POST /v1/functions/{functionId}/samples`
+
+### Text sample
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The text content to add to the search index.
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  Your own unique identifier for this sample. You can use this ID later to delete or look up the sample without storing Nyckel's ID.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"The eagle soared over the mountain lake.","externalId":"doc-001"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": "The eagle soared over the mountain lake.",
+    "externalId": "doc-001"
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/samples', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    "data": "The eagle soared over the mountain lake.",
+    "externalId": "doc-001"
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+### Image sample (URL)
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/image.jpg","externalId":"img-001"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+### Image sample (bytes)
+
+Use `multipart/form-data` to upload raw image bytes.
+
+<ParamField body="data" type="file" required>
+  The image file (sent as a form field named `data`).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/image.jpg' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+**Create response**
+
+<ResponseField name="id" type="string">The Nyckel ID of the indexed sample.</ResponseField>
+<ResponseField name="data" type="string">The input data (URL for images, text string for text samples).</ResponseField>
+<ResponseField name="externalId" type="string">Your identifier, if provided.</ResponseField>
+
+```json
+{
+  "data": "The eagle soared over the mountain lake.",
+  "externalId": "doc-001",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+## Read a sample
+
+`GET /v1/functions/{functionId}/samples/{sampleId}`
+
+<ParamField path="sampleId" type="string" required>
+  The ID of the sample to retrieve.
+</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>'
+```
+
+**Response**
+
+```json
+{
+  "data": "The eagle soared over the mountain lake.",
+  "externalId": "doc-001",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+## List samples
+
+`GET /v1/functions/{functionId}/samples`
+
+<ParamField query="count" type="integer">Maximum number of samples to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+<ParamField query="externalId" type="string">Filter to the sample with this `externalId`.</ParamField>
+<ParamField query="createdBefore" type="string">Return samples created on or before this date (RFC 3339).</ParamField>
+<ParamField query="createdAfter" type="string">Return samples created on or after this date (RFC 3339).</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+**Response**
+
+```json
+[
+  {
+    "data": "The eagle soared over the mountain lake.",
+    "externalId": "doc-001",
+    "id": "sample_2n5a7za51n329v0l"
+  }
+]
+```
+
+## Delete a sample
+
+`DELETE /v1/functions/{functionId}/samples/{sampleId}`
+
+You can delete by Nyckel ID or by your own `externalId`. Deleting a sample removes it from the search index immediately.
+
+```bash curl
+# Delete by Nyckel ID
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>'
+
+# Delete by externalId
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples?externalId=<externalId>'
+```
+
+Returns an empty `200 OK` response on success.

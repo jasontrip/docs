@@ -1,0 +1,280 @@
+---
+title: "POST /v1/functions/{functionId}/invoke — Classification"
+sidebarTitle: "Invoke"
+description: "Invoke a Nyckel classification function with text, image, or tabular data. Returns the predicted label name, label ID, and confidence score."
+---
+
+Calling the invoke endpoint runs your trained classification function against a new input and returns the top predicted label along with a confidence score. The same endpoint path is used for text, image, and tabular functions — the request body format differs by data type.
+
+All invoke requests require an `Authorization: Bearer <accessToken>` header. See [Authentication](/authentication) for how to obtain a token.
+
+## Invoke a text function
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The text input to classify.
+</ParamField>
+
+<ParamField query="labelCount" type="integer">
+  The number of labels to return with their confidence scores. When omitted, only the highest-confidence label is returned.
+</ParamField>
+
+<ParamField query="includeMetadata" type="boolean">
+  When `true`, the response includes the `labelMetadata` field. Defaults to `false`.
+</ParamField>
+
+<ParamField query="capture" type="boolean">
+  Whether to enable invoke capture for this request. Invoke capture saves informative samples for future annotation. Defaults to `true`.
+</ParamField>
+
+<ParamField query="externalId" type="string">
+  Your own unique identifier for this invocation. Used if the invoke is saved through invoke capture.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"Your input text here"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {
+    'Authorization': 'Bearer ' + '<accessToken>',
+}
+
+result = requests.post(url, headers=headers, json={"data": "Your input text here"})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + '<accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "Your input text here" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Invoke an image function
+
+You can send an image in two ways: as a URL (or data URI) in a JSON body, or as raw bytes via `multipart/form-data`.
+
+### Send image URL
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image. A [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme) is also accepted.
+</ParamField>
+
+<ParamField query="labelCount" type="integer">
+  Number of top labels to return. When omitted, only the top result is returned.
+</ParamField>
+
+<ParamField query="includeMetadata" type="boolean">
+  Include `labelMetadata` in the response. Defaults to `false`.
+</ParamField>
+
+<ParamField query="capture" type="boolean">
+  Enable invoke capture. Defaults to `true`.
+</ParamField>
+
+<ParamField query="externalId" type="string">
+  Your identifier for this invocation.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/image.jpg"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={"data": "https://example.com/image.jpg"})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "https://example.com/image.jpg" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+### Send image bytes
+
+Use `multipart/form-data` to upload raw image bytes directly.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="file" required>
+  The image file to classify (sent as a form field named `data`).
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/image.jpg' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+with open('/path/to/image.jpg', 'rb') as f:
+    result = requests.post(url, headers=headers, files={'data': f})
+print(result.text)
+```
+
+```javascript javascript
+const form = new FormData();
+form.append('data', File(fileBytes, 'image.jpg'));
+
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer <accessToken>' },
+  body: form
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Invoke a tabular function
+
+For tabular functions, supply the input as a JSON object where keys are field IDs (or field names) and values are strings or numbers.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="object" required>
+  A JSON object mapping field IDs or names to their values. Use strings for `Text`/`Image` fields and numbers for `Number` fields.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_76jk77g59vawcoz8":"John","field_b2jpqb1r2fsfs2s9":"Doe"}}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": {
+        "field_76jk77g59vawcoz8": "John",
+        "field_b2jpqb1r2fsfs2s9": "Doe"
+    }
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    "data": {
+      "field_76jk77g59vawcoz8": "John",
+      "field_b2jpqb1r2fsfs2s9": "Doe"
+    }
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="labelName" type="string">
+  The human-readable name of the predicted label.
+</ResponseField>
+
+<ResponseField name="labelId" type="string">
+  The ID of the predicted label (e.g. `label_2n5a7za51n329v0l`).
+</ResponseField>
+
+<ResponseField name="confidence" type="number">
+  A value between 0 and 1 indicating the model's confidence in the prediction.
+</ResponseField>
+
+<ResponseField name="labelConfidences" type="array">
+  An array of the top N label predictions with their confidence scores. Only present when `labelCount` is specified in the request.
+</ResponseField>
+
+<ResponseField name="labelMetadata" type="object">
+  A dictionary of key/value pairs with additional metadata about the predicted label. Only present when `includeMetadata=true`.
+</ResponseField>
+
+**Example response**
+
+```json
+{
+  "labelName": "Bird",
+  "labelId": "label_2n5a7za51n329v0l",
+  "confidence": 0.76
+}
+```
+
+**Example response with `labelCount=3`**
+
+```json
+{
+  "labelName": "Bird",
+  "labelId": "label_2n5a7za51n329v0l",
+  "confidence": 0.76,
+  "labelConfidences": [
+    { "labelName": "Bird", "labelId": "label_2n5a7za51n329v0l", "confidence": 0.76 },
+    { "labelName": "Cat",  "labelId": "label_abc123",           "confidence": 0.18 },
+    { "labelName": "Dog",  "labelId": "label_def456",           "confidence": 0.06 }
+  ]
+}
+```

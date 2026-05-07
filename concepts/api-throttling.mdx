@@ -1,0 +1,84 @@
+---
+title: "API rate limits and error handling"
+sidebarTitle: "Rate Limits"
+description: "Nyckel enforces rate and concurrency limits. Learn the thresholds, error codes returned, and how to handle throttling in your app."
+---
+
+Nyckel enforces two types of limits on API traffic to maintain service reliability. If your application exceeds these limits, the API returns an HTTP `429` status code. This page describes the limits, how to handle errors, and covers the full error response schema.
+
+## Rate limits
+
+| Limit type | Threshold |
+|---|---|
+| Requests per second (RPS) | 25 |
+| Concurrent requests | 25 |
+
+Both limits apply per account. If either threshold is exceeded, the API returns a `429` response.
+
+<Note>
+  Enterprise plans can have these limits increased. Contact [feedback@nyckel.com](mailto:feedback@nyckel.com) to discuss your requirements.
+</Note>
+
+## Error response schema
+
+All error responses — both `4xx` and `5xx` — share the same JSON structure:
+
+```json
+{
+  "message": "A textual description of the error encountered."
+}
+```
+
+The `message` field provides a human-readable description of what went wrong.
+
+## Error codes
+
+The table below lists the most important error codes and the recommended action for each.
+
+| Code | Meaning | Recommended action |
+|---|---|---|
+| `402` | Billing issue | You have exceeded the free tier quota. Upgrade your plan in the console. |
+| `403` | Forbidden | Check your [credentials](/authentication). The access token may be expired or invalid. |
+| `409` | Resource conflict | You attempted to create a sample that already exists. Nyckel does not allow duplicate samples. To update an annotation on an existing sample, use the `PUT /annotations` endpoint instead. |
+| `429` | Throttled | You exceeded 25 RPS or 25 concurrent requests. Reduce request rate or add retries with backoff. |
+| `500` | Internal error | An unexpected server error occurred. Retry the request, ideally with exponential backoff. |
+| `503` | Service unavailable | The service is temporarily unavailable. Retry the request with exponential backoff. |
+
+### Handling 429 and 5xx errors
+
+For `429`, `500`, and `503` responses, implement a retry strategy with **exponential backoff**: wait a short interval before the first retry, then double the wait time on each subsequent retry up to a maximum cap.
+
+```python python example
+import time
+import requests
+
+def invoke_with_retry(url, headers, data, max_retries=5):
+    delay = 1  # seconds
+    for attempt in range(max_retries):
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code in (429, 500, 503):
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+                delay = min(delay * 2, 30)
+                continue
+        response.raise_for_status()
+        return response.json()
+    raise Exception("Max retries exceeded")
+```
+
+## ID prefixes
+
+API responses return `id` fields with a human-readable prefix followed by an underscore and an alphanumeric identifier:
+
+```
+label_2n5a7za51n329v0l
+sample_2n5a7za51n329v0l
+field_85osy5xwjcscc08o
+function_abc123
+```
+
+The prefix indicates the resource type. When you reference an ID in an API call, treat the **entire string including the prefix** as the ID. You may omit the prefix and it will still work, but including it makes your code more readable and easier to debug.
+
+<Warning>
+  Never store only the alphanumeric portion of an ID and reconstruct the prefix yourself. The full string (prefix + alphanumeric) is the canonical identifier.
+</Warning>

@@ -1,0 +1,132 @@
+---
+title: "POST /v1/functions/{functionId}/invoke — Tags"
+sidebarTitle: "Invoke"
+description: "Invoke a Nyckel tags function with text, image, or tabular data. Returns an array of matching tag labels, each with a confidence score."
+---
+
+A tags function differs from classification in that it can return **multiple** matching labels for a single input. The invoke endpoint accepts the same data types as classification (text, image, tabular) but always returns an array of predictions rather than a single top label.
+
+All invoke requests require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  Tags functions use API version `v0.9` for the invoke endpoint. Ensure you use the correct version prefix in your requests.
+</Note>
+
+## Invoke with text
+
+`POST /v0.9/functions/{functionId}/invoke`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The text input to run through the tags function.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"The eagle soared over the mountain lake."}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": "The eagle soared over the mountain lake."
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "The eagle soared over the mountain lake." })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Invoke with an image
+
+### Send image URL
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/scene.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+### Send image bytes
+
+Use `multipart/form-data` to upload a raw image file.
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/scene.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+## Invoke with tabular data
+
+<ParamField body="data" type="object" required>
+  A JSON object mapping field IDs or names to their values.
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_76jk77g59vawcoz8":"John","field_b2jpqb1r2fsfs2s9":"Doe"}}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+## Response
+
+The response is an array of `Prediction` objects representing all labels the model believes apply to the input, sorted by confidence.
+
+<ResponseField name="labelId" type="string">
+  The ID of the matching label.
+</ResponseField>
+
+<ResponseField name="labelName" type="string">
+  The human-readable name of the matching label.
+</ResponseField>
+
+<ResponseField name="confidence" type="number">
+  A value between 0 and 1 indicating how confident the model is that this tag applies.
+</ResponseField>
+
+```json
+[
+  {
+    "labelName": "Bird",
+    "labelId": "label_2n5a7za51n329v0l",
+    "confidence": 0.76
+  },
+  {
+    "labelName": "Wildlife",
+    "labelId": "label_h77q8ylibkv6x730",
+    "confidence": 0.61
+  }
+]
+```

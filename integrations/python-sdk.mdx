@@ -1,0 +1,72 @@
+---
+title: "Nyckel Python SDK reference and usage guide"
+sidebarTitle: "Python SDK"
+description: "Install the Nyckel Python SDK pip package to interact with the API using a clean, Pythonic interface with built-in authentication and client-side threading."
+---
+
+The Nyckel Python SDK is a pip package that abstracts away authentication, client-side threading, and low-level HTTP details so you can interact with Nyckel functions using a clean, Pythonic interface.
+
+## Installation
+
+Install the SDK from PyPI:
+
+```bash
+pip install nyckel
+```
+
+## Overview
+
+The SDK handles OAuth token management automatically — you provide your client credentials once, and the SDK refreshes tokens as needed. It also manages threading internally, so you can submit many samples or invocations concurrently without writing async boilerplate yourself.
+
+## Example usage
+
+The example below shows the simplified API for text classification. The SDK follows the same pattern for image and tabular classification.
+
+```python
+from nyckel import Credentials, TextClassificationFunction
+
+# Authenticate using your client ID and secret
+credentials = Credentials(client_id="your_client_id", client_secret="your_client_secret")
+
+# Connect to an existing text classification function
+fn = TextClassificationFunction(function_id="your_function_id", credentials=credentials)
+
+# Invoke the function with a single input
+result = fn.invoke("Is this message spam?")
+print(result.label_name)   # e.g. "spam"
+print(result.confidence)   # e.g. 0.97
+```
+
+<Note>
+  Replace `your_client_id`, `your_client_secret`, and `your_function_id` with values from the [Nyckel console](https://www.nyckel.com/console). Your function ID appears in the URL when you open a function.
+</Note>
+
+## Module reference
+
+The SDK ships with modules for each supported classification type. Click through to the full auto-generated API docs for constructor arguments, method signatures, and return types.
+
+<CardGroup cols={3}>
+  <Card
+    title="Image Classification"
+    icon="image"
+    href="https://nyckelai.github.io/python-sdk/image_classification/"
+  >
+    Invoke and manage image classification functions.
+  </Card>
+  <Card
+    title="Text Classification"
+    icon="text-cursor"
+    href="https://nyckelai.github.io/python-sdk/text_classification/"
+  >
+    Invoke and manage text classification functions.
+  </Card>
+  <Card
+    title="Tabular Classification"
+    icon="table"
+    href="https://nyckelai.github.io/python-sdk/tabular_classification/"
+  >
+    Invoke and manage tabular classification functions.
+  </Card>
+</CardGroup>
+
+Full SDK documentation is available at [nyckelai.github.io/python-sdk](https://nyckelai.github.io/python-sdk/).

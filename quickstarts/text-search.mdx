@@ -1,0 +1,307 @@
+---
+title: "Semantic text search quickstart with Nyckel"
+description: "Build a semantic text search function with Nyckel. Add text samples and search by query text to find semantically similar results."
+sidebarTitle: "Text Search"
+---
+
+Nyckel's text search function lets you index a corpus of text documents and then retrieve the most semantically similar entries using a natural language query. Unlike keyword search, semantic search understands meaning — so a query for "film plots" can match records about movies even if neither word appears in them. No labels or model training annotations are required. This guide uses the [Wikipedia movie plots](https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots) dataset from Kaggle as a demonstration.
+
+<Note>
+  You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+Obtain a Bearer token by posting your credentials to the token endpoint. Tokens expire after 3600 seconds.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Create a search function">
+
+Create a text search function by setting `input` to `Text` and `output` to `Search`.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"movie-plot-search","input":"Text","output":"Search"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'movie-plot-search',
+    'input': 'Text',
+    'output': 'Search'
+})
+print(result.json())
+# {"name": "movie-plot-search", "input": "Text", "output": "Search", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'movie-plot-search', input: 'Text', output: 'Search' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '{"name":"movie-plot-search","input":"Text","output":"Search"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response. You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Add text samples to the index">
+
+Upload text documents to populate the search index. Each sample becomes a searchable entry. Provide an optional `externalId` to map results back to your own records.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"A young wizard discovers his magical heritage and begins training at a school for witches and wizards.","externalId":"movie_001"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+plots = [
+    {
+        'text': 'A young wizard discovers his magical heritage and begins training at a school for witches and wizards.',
+        'id': 'movie_001'
+    },
+    {
+        'text': 'Two detectives investigate a series of murders with clues left at the crime scenes.',
+        'id': 'movie_002'
+    },
+    {
+        'text': 'A spaceship crew battles an alien creature that has boarded their vessel.',
+        'id': 'movie_003'
+    }
+]
+
+for plot in plots:
+    result = requests.post(url, headers=headers, json={
+        'data': plot['text'],
+        'externalId': plot['id']
+    })
+    print(result.json())
+```
+
+```javascript javascript
+const plots = [
+  { text: 'A young wizard discovers his magical heritage...', id: 'movie_001' },
+  { text: 'Two detectives investigate a series of murders...', id: 'movie_002' },
+];
+
+for (const plot of plots) {
+  fetch('https://www.nyckel.com/v1/functions/<functionId>/samples', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ data: plot.text, externalId: plot.id })
+  })
+    .then(response => response.json())
+    .then(data => console.log(data));
+}
+```
+
+```php php
+$plots = [
+    ['text' => 'A young wizard discovers his magical heritage...', 'id' => 'movie_001'],
+    ['text' => 'Two detectives investigate a series of murders...', 'id' => 'movie_002'],
+];
+
+foreach ($plots as $plot) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/samples');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,
+        json_encode(['data' => $plot['text'], 'externalId' => $plot['id']]));
+    $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    echo curl_exec($ch);
+    curl_close($ch);
+}
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Search using a text query">
+
+Submit a text query to the `invoke` endpoint to retrieve the most semantically similar samples from your index. Results are ranked by distance — lower values indicate closer semantic matches.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"stories about magic and school"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers,
+    params={'sampleCount': 5},
+    json={'data': 'stories about magic and school'})
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'stories about magic and school' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"stories about magic and school"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response returns an array of matching samples, sorted from most to least similar:
+
+```json
+[
+  {
+    "sampleId": "sample_abc123",
+    "distance": 0.08,
+    "externalId": "movie_001"
+  },
+  {
+    "sampleId": "sample_ghi789",
+    "distance": 0.45,
+    "externalId": "movie_003"
+  }
+]
+```
+
+<Tip>
+  Use the `sampleCount` query parameter (1–100) to control how many results are returned. By default only the closest match is returned. Set `includeData=true` to include the original text of each matching sample in the response.
+</Tip>
+
+</Step>
+
+</Steps>

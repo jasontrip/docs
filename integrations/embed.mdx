@@ -1,0 +1,87 @@
+---
+title: "Embed a Nyckel classifier on your website"
+sidebarTitle: "Embed Widget"
+description: "Add a Nyckel classifier widget to any webpage with a JavaScript snippet. Users can upload images or enter text and see predictions."
+---
+
+The Nyckel embed widget lets you drop a classifier directly onto any webpage using a single `<script>` tag. Visitors can upload an image or type text, and the widget displays the predicted label and confidence score inline — no backend code required on your end.
+
+<Note>
+  The embed widget currently supports **text and image classification functions only**. Other function types (tagging, search, detection) are not yet supported.
+</Note>
+
+## Setup
+
+<Steps>
+  <Step title="Find your function ID">
+    Log in to the [Nyckel console](https://www.nyckel.com/console), open your function, and copy the ID from the browser URL. It looks like `hfuc0xli714bfe04`.
+  </Step>
+
+  <Step title="Build your script tag">
+    Choose the template that matches your function type and replace `{{ functionid }}` with your actual function ID.
+
+    <CodeGroup>
+
+    ```html Image classification
+    <script src="https://www.nyckel.com/assets/js/embed-image.js?id={{ functionid }}"></script>
+    ```
+
+    ```html Text classification
+    <script src="https://www.nyckel.com/assets/js/embed-text.js?id={{ functionid }}"></script>
+    ```
+
+    </CodeGroup>
+
+    For example, with function ID `hfuc0xli714bfe04`:
+
+    <CodeGroup>
+
+    ```html Image example
+    <script src="https://www.nyckel.com/assets/js/embed-image.js?id=hfuc0xli714bfe04"></script>
+    ```
+
+    ```html Text example
+    <script src="https://www.nyckel.com/assets/js/embed-text.js?id=hfuc0xli714bfe04"></script>
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Enable Public Invoke">
+    In the Nyckel console, open your function and go to the **Integrations** tab. Find the **Enable Public Invoke** toggle and turn it on. By default it is off, and the widget will not work until you enable it.
+  </Step>
+
+  <Step title="Add the script tag to your HTML">
+    Paste the script tag directly into your HTML at the location where you want the widget to appear. When the page loads, a dotted-border upload box will render in that spot.
+  </Step>
+
+  <Step title="Test the widget">
+    Upload an image or type some text into the widget. The predicted label and confidence level should appear below the input. If nothing appears, work through the troubleshooting checklist below.
+  </Step>
+</Steps>
+
+## Customization
+
+Growth and Enterprise customers can remove the Nyckel branding from the widget and customize its colors and font to match their site's design. Contact [feedback@nyckel.com](mailto:feedback@nyckel.com) to enable branding customization for your account.
+
+## Troubleshooting
+
+If the widget is not working as expected, go through these checks:
+
+- **Is your function a text or image classifier?** The embed widget only works for those two function types. Other types are not supported yet.
+- **Are you using the right script tag?** The image and text tags have different filenames (`embed-image.js` vs `embed-text.js`). Make sure the tag matches your function type.
+- **Is Public Invoke enabled?** Open the **Integrations** tab in the console and confirm the toggle is on.
+- **Is the function ID correct and present in the URL?** Double-check the `?id=` parameter in your script tag against the ID shown in the console.
+- **Is the function returning errors in the test tab?** Open your function in the console and try invoking it from the **Test** tab. If it fails there, the function may need more labeled samples before it is ready to deploy.
+- **Are you using Wix or a similar third-party CMS?** The embed widget does not currently work with some CMSes, including Wix.
+- **Is the widget too large or too small?** The widget fills its container. If it looks too wide, wrap the script tag in a constraining div:
+
+  ```html
+  <div style="padding-left:20%;padding-right:20%">
+    <script src="https://www.nyckel.com/assets/js/embed-image.js?id=your_function_id"></script>
+  </div>
+  ```
+
+  Increase the padding percentage to shrink the widget further.
+
+If none of these steps resolve the issue, email [feedback@nyckel.com](mailto:feedback@nyckel.com) with a description of the problem.

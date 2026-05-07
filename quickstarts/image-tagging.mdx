@@ -1,0 +1,419 @@
+---
+title: "Image tagging quickstart with Nyckel"
+description: "Train a multi-label image tagger using the Nyckel API. Assign multiple custom tags to a single image — unlike classification, any number of labels can apply."
+sidebarTitle: "Image Tagging"
+---
+
+Image tagging (also called multi-label classification) lets you assign multiple tags to a single image simultaneously. Unlike single-label classification — where an image belongs to exactly one category — tagging lets you apply any number of relevant labels from your defined set. This guide walks through training an image tagger using the Nyckel API, demonstrated using the [Fashion Product Images Dataset](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-dataset) from Kaggle.
+
+<Note>
+  You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+All Nyckel API requests require a Bearer token. Obtain one by posting your credentials to the token endpoint.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response contains an `access_token` valid for 3600 seconds. Use it as a Bearer token in all subsequent requests.
+
+</Step>
+
+<Step title="Create a tagging function">
+
+Create an image tagging function by setting `input` to `Image` and `output` to `Tags`.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"fashion-tagger","input":"Image","output":"Tags"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'fashion-tagger',
+    'input': 'Image',
+    'output': 'Tags'
+})
+print(result.json())
+# {"name": "fashion-tagger", "input": "Image", "output": "Tags", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'fashion-tagger', input: 'Image', output: 'Tags' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"name":"fashion-tagger","input":"Image","output":"Tags"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response (e.g. `function_85osy5xwjcscc08o`). You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Add labels">
+
+Create a label for each tag category you want to detect. For the fashion dataset, tags might include attributes like color, sleeve length, or garment type. Call the label creation endpoint once per tag.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Blue"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+for label_name in ['Blue', 'Short sleeve', 'Casual']:
+    result = requests.post(url, headers=headers, json={'name': label_name})
+    print(result.json())
+```
+
+```javascript javascript
+const labels = ['Blue', 'Short sleeve', 'Casual'];
+
+for (const name of labels) {
+  fetch('https://www.nyckel.com/v1/functions/<functionId>/labels', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name })
+  })
+    .then(response => response.json())
+    .then(data => console.log(data));
+}
+```
+
+```php php
+$labels = ['Blue', 'Short sleeve', 'Casual'];
+
+foreach ($labels as $name) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/labels');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['name' => $name]));
+    $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    echo curl_exec($ch);
+    curl_close($ch);
+}
+```
+
+</CodeGroup>
+
+Each response includes a label `id` — note the IDs for use during annotation.
+
+</Step>
+
+<Step title="Add and annotate image samples">
+
+Upload images and annotate each with the set of tags that apply. The annotation for a tags function is an array of label IDs — include all labels that are present in the image.
+
+First, add an image sample by URL:
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/blue-casual-tshirt.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': 'https://example.com/blue-casual-tshirt.jpg'
+})
+sample_id = result.json()['id']
+print(sample_id)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/blue-casual-tshirt.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data.id));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/samples');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/blue-casual-tshirt.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Then annotate the sample with all applicable label IDs:
+
+<CodeGroup>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '[{"labelId":"label_abc123"},{"labelId":"label_def456"}]' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+# Annotate with multiple labels: Blue + Casual
+result = requests.put(url, headers=headers, json=[
+    {'labelId': 'label_abc123'},
+    {'labelId': 'label_def456'}
+])
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    { labelId: 'label_abc123' },
+    { labelId: 'label_def456' }
+  ])
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '[{"labelId":"label_abc123"},{"labelId":"label_def456"}]');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+<Tip>
+  You can also annotate a sample with zero labels (an empty array `[]`) to indicate that none of your defined tags apply to that image.
+</Tip>
+
+Repeat for each training image. The model will begin training once enough annotated samples are available.
+
+</Step>
+
+<Step title="Invoke the function">
+
+Once the model has trained, invoke it with a new image to receive a list of predicted tags with confidence scores.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/new-product.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': 'https://example.com/new-product.jpg'
+})
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/new-product.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/invoke');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/new-product.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response is an array of predictions — one entry per tag that the model considers likely to be present:
+
+```json
+[
+  {
+    "labelName": "Blue",
+    "labelId": "label_abc123",
+    "confidence": 0.94
+  },
+  {
+    "labelName": "Casual",
+    "labelId": "label_def456",
+    "confidence": 0.81
+  }
+]
+```
+
+You can also upload image bytes directly using `multipart/form-data` instead of passing a URL:
+
+```bash
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@product.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+</Step>
+
+</Steps>

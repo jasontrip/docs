@@ -1,0 +1,269 @@
+---
+title: "Optical character recognition (OCR) with Nyckel"
+description: "Use the Nyckel OCR function to extract text from images via the REST API. No training required — create the function and start extracting text immediately."
+sidebarTitle: "OCR"
+---
+
+Nyckel's OCR function extracts text from images using a pre-built, ready-to-use endpoint — no model training or annotation required. Simply authenticate, create an OCR function, and start extracting text immediately by sending an image URL or raw image bytes. This guide walks through the complete setup.
+
+<Note>
+  You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+Obtain a Bearer token by posting your credentials to the token endpoint. Tokens expire after 3600 seconds.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Create an OCR function">
+
+Create an OCR function by setting `input` to `Image` and `output` to `Ocr`. No training data, labels, or annotations are needed.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"my-ocr-function","input":"Image","output":"Ocr"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'my-ocr-function',
+    'input': 'Image',
+    'output': 'Ocr'
+})
+print(result.json())
+# {"name": "my-ocr-function", "input": "Image", "output": "Ocr", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'my-ocr-function', input: 'Image', output: 'Ocr' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '{"name":"my-ocr-function","input":"Image","output":"Ocr"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response. You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Extract text from an image">
+
+Send an image to the OCR endpoint to extract its text. You can provide the image as a URL or upload raw bytes. The function is ready to use immediately — no training required.
+
+**Send an image URL:**
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/receipt.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': 'https://example.com/receipt.jpg'
+})
+print(result.json())
+# {"text": "Store Name\nDate: 01/01/2024\nTotal: $42.50"}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/ocr', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/receipt.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data.text));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/receipt.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+**Send image bytes directly:**
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@receipt.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+with open('receipt.jpg', 'rb') as f:
+    result = requests.post(url, headers=headers, files={'data': f})
+print(result.json())
+```
+
+```javascript javascript
+const form = new FormData();
+form.append('data', File(fileBytes, 'receipt.jpg'));
+
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/ocr', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>'
+  },
+  body: form
+})
+  .then(response => response.json())
+  .then(data => console.log(data.text));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+
+$file = curl_file_create(realpath('receipt.jpg'));
+$fields = ['data' => $file];
+curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: multipart/form-data'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response contains a `text` field with all text extracted from the image:
+
+```json
+{
+  "text": "A bird is a common animal."
+}
+```
+
+<Tip>
+  Add the `includeRegions=true` query parameter to also receive the bounding regions within the image where text was found. This is useful when you need to know the spatial location of extracted text, not just its content.
+</Tip>
+
+</Step>
+
+</Steps>

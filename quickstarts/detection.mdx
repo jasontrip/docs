@@ -1,0 +1,425 @@
+---
+title: "Center-point object detection quickstart"
+description: "Train a center-point object detection function with Nyckel. Locate objects in images and return their center coordinates and labels."
+sidebarTitle: "Object Detection"
+---
+
+Center-point object detection locates instances of specific objects within images and returns the center coordinates of each detected object as normalized x/y values (0–1). This is a lighter-weight alternative to bounding-box detection — instead of marking the full rectangular extent of each object, you annotate a single point at its center. This guide demonstrates training a detector to find Cheerios boxes on grocery shelves.
+
+<Note>
+  Detection functions currently support one label per function. You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+Obtain a Bearer token by posting your credentials to the token endpoint. Tokens expire after 3600 seconds.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Create a detection function">
+
+Create a detection function by setting `input` to `Image` and `output` to `Localization`.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"cheerios-detector","input":"Image","output":"Localization"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'cheerios-detector',
+    'input': 'Image',
+    'output': 'Localization'
+})
+print(result.json())
+# {"name": "cheerios-detector", "input": "Image", "output": "Localization", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'cheerios-detector', input: 'Image', output: 'Localization' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '{"name":"cheerios-detector","input":"Image","output":"Localization"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response. You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Create a label">
+
+Add the label for the object type you want to detect. Detection functions currently support one label per function.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Cheerios box"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={'name': 'Cheerios box'})
+label = result.json()
+label_id = label['id']
+print(label)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/labels', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'Cheerios box' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/labels');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"name":"Cheerios box"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Add and annotate image samples">
+
+Upload training images and annotate each with the locations of the objects. Coordinates are expressed as normalized values from 0 to 1, where (0, 0) is the top-left corner and (1, 1) is the bottom-right corner.
+
+First, add an image sample:
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/grocery-shelf.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': 'https://example.com/grocery-shelf.jpg'
+})
+sample_id = result.json()['id']
+print(sample_id)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/grocery-shelf.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data.id));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/samples');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/grocery-shelf.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Then annotate the sample with the center-point locations of each object instance. Each entry in the array represents one label with a list of point annotations for all instances of that label in the image:
+
+<CodeGroup>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '[{"labelId":"label_2n5a7za51n329v0l","points":[{"x":0.25,"y":0.45},{"x":0.70,"y":0.55}]}]' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+# Two Cheerios boxes in the image — annotate both center points
+result = requests.put(url, headers=headers, json=[
+    {
+        'labelId': 'label_2n5a7za51n329v0l',
+        'points': [
+            {'x': 0.25, 'y': 0.45},
+            {'x': 0.70, 'y': 0.55}
+        ]
+    }
+])
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      labelId: 'label_2n5a7za51n329v0l',
+      points: [
+        { x: 0.25, y: 0.45 },
+        { x: 0.70, y: 0.55 }
+      ]
+    }
+  ])
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '[{"labelId":"label_2n5a7za51n329v0l","points":[{"x":0.25,"y":0.45},{"x":0.70,"y":0.55}]}]');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+<Tip>
+  To annotate an image that contains zero instances of the object, pass an empty points array: `[{"labelId": "<labelId>", "points": []}]`.
+</Tip>
+
+The model will begin training once at least 2 images have been annotated (not counting zero-object annotations). Allow up to 60 seconds for training to complete before calling invoke.
+
+</Step>
+
+<Step title="Invoke the function">
+
+Submit a new image to detect objects. The response returns an array of detected labels, each with a list of predicted center points and confidence scores.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/new-shelf.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': 'https://example.com/new-shelf.jpg'
+})
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/locate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/new-shelf.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/locate');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/new-shelf.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response lists each label with predicted center-point locations. The `x` and `y` coordinates are normalized (0–1). A higher `confidence` value means the model is more certain the object is present at that location:
+
+```json
+[
+  {
+    "labelId": "label_2n5a7za51n329v0l",
+    "points": [
+      {
+        "x": 0.25,
+        "y": 0.78,
+        "confidence": 0.85
+      },
+      {
+        "x": 0.67,
+        "y": 0.52,
+        "confidence": 0.71
+      }
+    ]
+  }
+]
+```
+
+You can also submit binary image data directly:
+
+```bash
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@shelf.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+```
+
+</Step>
+
+</Steps>

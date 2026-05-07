@@ -1,0 +1,51 @@
+---
+title: "How Nyckel trains and evaluates models"
+sidebarTitle: "Model Training"
+description: "Understand how Nyckel's AutoML engine trains your model with cross-validation, reports accuracy in the console, and uses your training data effectively."
+---
+
+Nyckel trains machine learning models automatically whenever you add or annotate samples. This page explains how training works, how accuracy is estimated, and how to choose training data that produces reliable models.
+
+## Accuracy in the console
+
+When your function has enough annotated samples to train, the [Nyckel console](https://www.nyckel.com/console) displays an accuracy estimate for your function:
+
+- **Overall accuracy** — shown in the top bar, this is the fraction of all annotated samples that the model predicts correctly.
+- **Per-class accuracy** — shown below the overall bar, these reflect how accurately the model predicts each individual label.
+
+These numbers are estimates based on cross-validation (described below), not measurements on held-out test data. They give you a useful signal for how well your model is likely to perform in production, especially when your training data is representative.
+
+## Cross-validation
+
+To estimate accuracy without holding out a separate test set, Nyckel uses **cross-validation**. The process works as follows:
+
+1. Nyckel divides your annotated samples into several subsets.
+2. It trains multiple models, each using most of the subsets for training and leaving one subset out.
+3. Each model predicts the labels for the samples it was not trained on.
+4. These out-of-sample predictions are aggregated to produce the accuracy estimate you see in the console.
+5. Finally, Nyckel trains one last model on **all** annotated data — this is the model used when you call `/invoke`.
+
+Cross-validation gives a fairer accuracy estimate than measuring accuracy on training data alone, because each sample's prediction was made by a model that never saw it during training.
+
+## Training data guidelines
+
+The quality and composition of your training data has a large effect on model accuracy. Follow these guidelines for the best results:
+
+- **Use production-like data.** Training samples should look like the inputs your function will receive in production. If possible, use data from the same system where you plan to deploy the function.
+- **Balance your classes.** Include roughly equal numbers of samples for each label. A heavily imbalanced dataset (e.g., 90% `spam` and 10% `not-spam`) can cause the model to over-predict the majority class.
+- **More data is better.** Adding more annotated samples nearly always improves accuracy. Start with at least 10–20 samples per label and expand from there.
+
+## Context length for text models
+
+Nyckel's `Text` and `Tabular` models use Large Language Models (LLMs) to process input text. LLMs have a fixed **context length** — the maximum amount of text they can process in a single input. Nyckel's LLMs currently have a context length of **512 tokens**.
+
+A token is roughly a word, punctuation mark, or similar language unit. The exact count depends on the tokenizer used by the underlying LLM, but in practice Nyckel's models can ingest approximately **300–500 words** of input text.
+
+If your inputs are longer than this:
+
+- **Try the full text anyway.** The first 300–500 words often contain enough signal for the model to learn accurate predictions. Nyckel will use what it can from the beginning of the text.
+- **Truncate or split in pre-processing.** If the most important content is not always at the beginning, consider splitting long documents into shorter chunks and creating one sample per chunk.
+
+<Tip>
+  If you are classifying long documents (e.g., full articles or emails), extracting a representative summary or the most relevant section as input often produces better results than sending the entire document.
+</Tip>

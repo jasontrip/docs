@@ -1,0 +1,247 @@
+---
+title: "Function management endpoints"
+sidebarTitle: "Functions"
+description: "Create, read, list, and delete Nyckel functions via the REST API. A function is the top-level container that holds your ML model, labels, and samples."
+---
+
+A function is the top-level resource in Nyckel. It combines an input data type (text, image, or tabular) with an ML output type (classification, tags, search, localization, or OCR). All samples, labels, and training data belong to a function.
+
+All function management endpoints require an `Authorization: Bearer <accessToken>` header.
+
+## Create a function
+
+`POST /v1/functions`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="name" type="string">
+  An optional human-readable name for the function.
+</ParamField>
+
+<ParamField body="input" type="string" required>
+  The type of input data for this function. Supported values: `Text`, `Image`, `Tabular`.
+</ParamField>
+
+<ParamField body="output" type="string" required>
+  The ML task for this function. Supported values: `Classification`, `Tags`, `Search`, `Localization`, `Ocr`.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Bird classifier","input":"Image","output":"Classification"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "name": "Bird classifier",
+    "input": "Image",
+    "output": "Classification"
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    "name": "Bird classifier",
+    "input": "Image",
+    "output": "Classification"
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+**Response**
+
+<ResponseField name="id" type="string">
+  The ID of the created function (e.g. `function_85osy5xwjcscc08o`).
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The function name.
+</ResponseField>
+
+<ResponseField name="input" type="string">
+  The input data type (`Text`, `Image`, or `Tabular`).
+</ResponseField>
+
+<ResponseField name="output" type="string">
+  The ML task type (`Classification`, `Tags`, `Search`, `Localization`, or `Ocr`).
+</ResponseField>
+
+```json
+{
+  "name": "Bird classifier",
+  "input": "Image",
+  "output": "Classification",
+  "id": "function_85osy5xwjcscc08o"
+}
+```
+
+### Valid input/output combinations
+
+| Input | Classification | Tags | Search | Localization | OCR |
+|-------|:-:|:-:|:-:|:-:|:-:|
+| `Text` | ✓ | ✓ | ✓ | — | — |
+| `Image` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Tabular` | ✓ | ✓ | — | — | — |
+
+## Read a function
+
+`GET /v1/functions/{functionId}`
+
+<ParamField path="functionId" type="string" required>
+  The ID of the function to retrieve.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.get(url, headers=headers)
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>', {
+  method: 'GET',
+  headers: { 'Authorization': 'Bearer <accessToken>' }
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+**Response**
+
+```json
+{
+  "name": "Bird classifier",
+  "input": "Image",
+  "output": "Classification",
+  "id": "function_85osy5xwjcscc08o"
+}
+```
+
+## List functions
+
+`GET /v1/functions`
+
+Returns all functions in your account.
+
+<ParamField query="count" type="integer">Maximum number of functions to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.get(url, headers=headers)
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'GET',
+  headers: { 'Authorization': 'Bearer <accessToken>' }
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+**Response**
+
+```json
+[
+  {
+    "name": "Bird classifier",
+    "input": "Image",
+    "output": "Classification",
+    "id": "function_85osy5xwjcscc08o"
+  },
+  {
+    "name": "Text tagger",
+    "input": "Text",
+    "output": "Tags",
+    "id": "function_99xyz5xwjcscc12a"
+  }
+]
+```
+
+## Delete a function
+
+`DELETE /v1/functions/{functionId}`
+
+<Warning>
+  Deleting a function is permanent and cannot be undone. All samples, labels, annotations, and training data associated with the function are deleted along with it.
+</Warning>
+
+<ParamField path="functionId" type="string" required>
+  The ID of the function to delete.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.delete(url, headers=headers)
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>', {
+  method: 'DELETE',
+  headers: { 'Authorization': 'Bearer <accessToken>' }
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+Returns an empty `200 OK` response on success.

@@ -1,0 +1,199 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Nyckel",
+  "description": "Nyckel documentation — train, deploy, and invoke machine learning functions for classification, tagging, search, and detection.",
+  "colors": {
+    "primary": "#2f6fa2",
+    "light": "#93bccd",
+    "dark": "#e9f2f4"
+  },
+  "favicon": {
+    "light": "https://media.brand.dev/30f919a4-a636-4026-a9b5-365a37b52d65.jpg",
+    "dark": "https://media.brand.dev/30f919a4-a636-4026-a9b5-365a37b52d65.jpg"
+  },
+  "logo": "/images/nyckel-logo-jost-import.svg",
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs"
+  },
+  "contextual": {
+    "options": ["copy", "view", "assistant"]
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Get Started",
+        "groups": [
+          {
+            "group": "Get Started",
+            "icon": "rocket",
+            "pages": [
+              "overview",
+              "call-a-pre-built-function",
+              "create-your-own-function"
+            ]
+          },
+          {
+            "group": "Feeback Cycle",
+            "icon": "recycle",
+            "pages": [
+              "review",
+              "evaluate",
+              "improve"
+            ]
+          },
+          {
+            "group": "Console",
+            "icon": "tv-minimal",
+            "pages": [
+              "homescreen",
+              "projects",
+              "adding-users"
+            ]
+          },
+          {
+            "group": "API",
+            "icon": "code",
+            "pages": [
+              "api-use",
+              {
+                "group": "Function Types",
+                "pages": [
+                  "classification"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/functions",
+              "concepts/data-types",
+              "concepts/model-training",
+              "concepts/api-throttling"
+            ],
+            "icon": "boxes"
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides",
+              "guides/improve-function"
+            ],
+            "icon": "clipboard-check"
+          },
+          {
+            "group": "Integrations & SDKs",
+            "pages": [
+              "integrations/python-sdk",
+              "integrations/zapier",
+              "integrations/embed"
+            ]
+          },
+          {
+            "group": "Best Practices",
+            "pages": [
+              "guides/model-pinning",
+              "guides/near-duplicate-removal",
+              "guides/add-collaborators",
+              "guides/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "authentication",
+              {
+                "group": "Quick Starts",
+                "pages": [
+                  "quickstarts/text-classification",
+                  "quickstarts/image-classification",
+                  "quickstarts/tabular-classification",
+                  "quickstarts/image-tagging",
+                  "quickstarts/image-search",
+                  "quickstarts/text-tagging",
+                  "quickstarts/text-search",
+                  "quickstarts/tabular-tagging",
+                  "quickstarts/detection",
+                  "quickstarts/bounding-box-detection",
+                  "quickstarts/ocr"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Classification",
+            "pages": [
+              "api-reference/classification/invoke",
+              "api-reference/classification/labels",
+              "api-reference/classification/samples"
+            ]
+          },
+          {
+            "group": "Tags",
+            "pages": [
+              "api-reference/tags/invoke",
+              "api-reference/tags/labels",
+              "api-reference/tags/samples"
+            ]
+          },
+          {
+            "group": "Search",
+            "pages": [
+              "api-reference/search/invoke",
+              "api-reference/search/samples"
+            ]
+          },
+          {
+            "group": "Detection & OCR",
+            "pages": [
+              "api-reference/detection/invoke",
+              "api-reference/detection/labels",
+              "api-reference/detection/samples",
+              "api-reference/ocr/invoke"
+            ]
+          },
+          {
+            "group": "Functions",
+            "pages": [
+              "api-reference/functions/manage"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "href": "https://www.nyckel.com/console",
+        "label": "Log In"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://www.nyckel.com/console"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/nyckelai",
+      "linkedin": "https://www.linkedin.com/company/nyckelai"
+    }
+  }
+}

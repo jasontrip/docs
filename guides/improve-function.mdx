@@ -1,0 +1,77 @@
+---
+title: "How to improve your Nyckel function's accuracy"
+sidebarTitle: "Improve Accuracy"
+description: "Improve your Nyckel model's accuracy by adding better training data, fixing annotation errors, and using the most effective samples for your use case."
+---
+
+If you already have a trained function but want better results, there are several concrete steps you can take — from adding the right training samples to fixing annotation errors to simplifying your class structure. This guide walks through each approach in order of typical impact.
+
+## Add more data
+
+Trained machine learning models improve with more data. The key is knowing _which_ data to add. Once you've identified the right samples, use the UI or the [Create text sample](https://www.nyckel.com/docs#create-text-sample) or [Create image sample](https://www.nyckel.com/docs#create-image-sample) endpoints to add them to your function.
+
+<AccordionGroup>
+  <Accordion title="Samples from your production environment">
+    Training samples should closely resemble the data your model will encounter in production. For text, this means matching vocabulary, tone, and length. For images, it means matching lighting conditions, orientation, and camera distance.
+
+    Use data harvested from your production database or users whenever possible. Avoid fabricating training data or relying on public datasets that don't reflect your real-world distribution.
+  </Accordion>
+
+  <Accordion title="Samples from rare classes">
+    If some classes are under-represented in your training data, seek out more examples of those classes specifically. If your function is already deployed, look for high-confidence predictions for rare classes. If not, search your database or run text-based queries to surface them.
+  </Accordion>
+
+  <Accordion title="Samples with wrong predictions">
+    The most informative samples to add are ones your function currently gets wrong. These are difficult to identify in bulk — you generally need to know the correct class to spot an error. However, user interactions (such as corrections or feedback signals on your site) can surface mislabeled predictions worth reviewing.
+  </Accordion>
+
+  <Accordion title="Difficult or low-confidence samples">
+    Samples that your model is uncertain about are more informative to train on than ones it handles easily. If your function is in production, look for low-confidence predictions. If not, use the invoke panel in the UI to explore which inputs produce uncertain results.
+  </Accordion>
+
+  <Accordion title="Randomly selected samples">
+    Including randomly sampled data helps prevent overfitting to the specific distribution you've already uploaded. Draw these samples from the data your function encounters (or will encounter) in production to keep training representative.
+  </Accordion>
+</AccordionGroup>
+
+## Annotate more data
+
+Once you have enough data imported, it's time to focus on annotation quality and coverage.
+
+<Steps>
+  <Step title="Fix annotation errors">
+    Annotation errors give your model incorrect information and degrade accuracy. To find them, filter samples by **Disagrees** in the **Function output** dropdown, then sort by **Most Confident Prediction**. This surfaces samples where the model is confident but disagrees with the annotation.
+
+    Browse the first few pages and correct any errors you find. These are often due to mis-clicks or shifts in class definitions over time.
+  </Step>
+
+  <Step title="Import annotations from external sources">
+    If you have annotations outside Nyckel — from user interactions, third-party annotation services, or heuristics like regex applied to text — import them to expand your training set.
+
+    You can import via the import panel in the UI or programmatically using the [Annotate sample](https://www.nyckel.com/docs#update-annotation) endpoint.
+  </Step>
+
+  <Step title="Annotate more in the UI">
+    The Nyckel annotation UI is optimized for throughput. If you have unannotated data available, set aside time to work through it. Even a few hundred additional annotations can meaningfully improve accuracy.
+  </Step>
+</Steps>
+
+## Still not accurate enough?
+
+If you've added data and cleaned up annotations but accuracy is still not where you need it, consider these options.
+
+<AccordionGroup>
+  <Accordion title="Simplify your class list">
+    As a general rule, fewer labels produce better accuracy. If you're frequently unsure which label applies when annotating, consider merging similar classes or reorganizing your label structure entirely.
+
+    You can use the [API](https://www.nyckel.com/docs) to create variants of your function with different label sets and compare accuracy across them.
+  </Accordion>
+
+  <Accordion title="Contact Nyckel">
+    Nyckel uses a sophisticated AutoML engine designed to maximize accuracy per function. If you're not getting the results you need, reach out at [feedback@nyckel.com](mailto:feedback@nyckel.com) — the team can investigate and may be able to improve the underlying system for your use case.
+  </Accordion>
+
+  <Accordion title="Try again later">
+    Nyckel continuously integrates the latest advances in machine learning into its AutoML engine. Your function may become more accurate over time without any changes on your end as the platform improves.
+  </Accordion>
+</AccordionGroup>

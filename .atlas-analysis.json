@@ -1,0 +1,157 @@
+{
+  "projectType": "saas",
+  "projectName": "Nyckel",
+  "projectDescription": "Nyckel is an AutoML API platform that lets developers train, deploy, and invoke custom machine learning functions for classification, tagging, search, and object detection — without ML expertise.",
+  "theme": "luma",
+  "primaryColor": "#2f6fa2",
+  "lightColor": "#93bccd",
+  "darkColor": "#e9f2f4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart-text",
+              "quickstart-image",
+              "quickstart-tabular",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/functions",
+              "concepts/data-types",
+              "concepts/model-training",
+              "concepts/api-throttling"
+            ]
+          },
+          {
+            "group": "Quick Starts",
+            "pages": [
+              "quickstarts/image-classification",
+              "quickstarts/image-tagging",
+              "quickstarts/image-search",
+              "quickstarts/text-classification",
+              "quickstarts/text-tagging",
+              "quickstarts/text-search",
+              "quickstarts/tabular-classification",
+              "quickstarts/tabular-tagging",
+              "quickstarts/detection",
+              "quickstarts/bounding-box-detection",
+              "quickstarts/ocr"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/improve-function",
+              "guides/model-pinning",
+              "guides/near-duplicate-removal",
+              "guides/add-collaborators",
+              "guides/faq"
+            ]
+          },
+          {
+            "group": "Integrations & SDKs",
+            "pages": [
+              "integrations/python-sdk",
+              "integrations/zapier",
+              "integrations/embed"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview"
+            ]
+          },
+          {
+            "group": "Classification",
+            "pages": [
+              "api-reference/classification/invoke",
+              "api-reference/classification/labels",
+              "api-reference/classification/samples"
+            ]
+          },
+          {
+            "group": "Tags",
+            "pages": [
+              "api-reference/tags/invoke",
+              "api-reference/tags/labels",
+              "api-reference/tags/samples"
+            ]
+          },
+          {
+            "group": "Search",
+            "pages": [
+              "api-reference/search/invoke",
+              "api-reference/search/samples"
+            ]
+          },
+          {
+            "group": "Detection & OCR",
+            "pages": [
+              "api-reference/detection/invoke",
+              "api-reference/detection/labels",
+              "api-reference/detection/samples",
+              "api-reference/ocr/invoke"
+            ]
+          },
+          {
+            "group": "Functions",
+            "pages": [
+              "api-reference/functions/manage"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AutoML text, image, and tabular classification",
+    "Multi-label tagging for text, image, and tabular data",
+    "Semantic image and text search",
+    "Object detection (center-point and bounding box)",
+    "Optical Character Recognition (OCR)",
+    "Instant model training in seconds with automatic retraining",
+    "REST API with multi-language support (curl, Python, JavaScript, PHP)",
+    "Python SDK for programmatic access",
+    "Zapier integration and embeddable JavaScript widget",
+    "Model pinning for version-controlled invocations",
+    "Near-duplicate image removal using semantic search",
+    "Collaborative team access per account"
+  ],
+  "publicApiSurface": [
+    "POST /connect/token",
+    "POST /v1/functions/<functionId>/invoke (text, image, tabular)",
+    "POST /v1/functions",
+    "GET /v1/functions",
+    "GET /v1/functions/<functionId>",
+    "DELETE /v1/functions/<functionId>",
+    "POST /v1/functions/<functionId>/labels",
+    "GET /v1/functions/<functionId>/labels",
+    "PUT /v1/functions/<functionId>/labels/<labelId>",
+    "DELETE /v1/functions/<functionId>/labels/<labelId>",
+    "POST /v1/functions/<functionId>/samples",
+    "GET /v1/functions/<functionId>/samples",
+    "DELETE /v1/functions/<functionId>/samples/<sampleId>",
+    "PUT /v1/functions/<functionId>/samples/<sampleId>/annotation",
+    "DELETE /v1/functions/<functionId>/samples/<sampleId>/annotation",
+    "GET /v1/functions/<functionId>/summary",
+    "POST /v1/functions/<functionId>/samplesets",
+    "GET /v1/functions/<functionId>/samplesets",
+    "DELETE /v1/functions/<functionId>/samplesets/<sampleSetId>",
+    "POST /v1/functions/<functionId>/fields (tabular)",
+    "GET/PUT/DELETE /v1/functions/<functionId>/fields/<fieldId>"
+  ]
+}

@@ -1,0 +1,130 @@
+---
+title: "POST /v1/functions/{functionId}/invoke — Search"
+sidebarTitle: "Invoke"
+description: "Invoke a Nyckel search function with text or image input. Returns a ranked list of similar samples from the index along with similarity distance scores."
+---
+
+Invoking a search function returns the most semantically similar samples from the function's index. You provide a query (text or image), and Nyckel returns an ordered list of matching samples with their similarity distances. A lower distance value means the sample is more similar to the query.
+
+All invoke requests require an `Authorization: Bearer <accessToken>` header.
+
+## Search with text
+
+`POST /v1/functions/{functionId}/invoke`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The text query to search for.
+</ParamField>
+
+<ParamField query="sampleCount" type="integer">
+  Number of similar samples to return. Must be between 1 and 100. When omitted, only the closest match is returned.
+</ParamField>
+
+<ParamField query="includeData" type="boolean">
+  When `true`, includes the original text or image data for each returned sample.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"bird flying over water"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers,
+    json={"data": "bird flying over water"},
+    params={"sampleCount": 5}
+)
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "bird flying over water" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Search with an image
+
+### Send image URL
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the query image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/query.jpg"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+### Send image bytes
+
+Use `multipart/form-data` to upload raw image bytes as the query.
+
+<ParamField query="sampleCount" type="integer">Number of similar samples to return (1–100).</ParamField>
+<ParamField query="includeData" type="boolean">Include sample data in response.</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/query.jpg' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+## Response
+
+The response is an array of `SearchSample` objects ordered from most similar (lowest distance) to least similar.
+
+<ResponseField name="sampleId" type="string">
+  The ID of the matching indexed sample.
+</ResponseField>
+
+<ResponseField name="externalId" type="string">
+  Your identifier for the sample, if provided when the sample was added.
+</ResponseField>
+
+<ResponseField name="distance" type="number">
+  A decimal value indicating semantic dissimilarity. **Lower is more similar.** Typical values range from 0 (identical) to 1+ (very different).
+</ResponseField>
+
+```json
+[
+  {
+    "sampleId": "sample_2n5a7za51n329v0l",
+    "distance": 0.12,
+    "externalId": "img-001"
+  },
+  {
+    "sampleId": "sample_h77q8ylibkv6x730",
+    "distance": 0.34,
+    "externalId": "img-042"
+  }
+]
+```
+
+<Tip>
+  Use `sampleCount` to retrieve more results. A value of `10`–`20` is a good starting point for building search-based UIs. Values must be between 1 and 100.
+</Tip>

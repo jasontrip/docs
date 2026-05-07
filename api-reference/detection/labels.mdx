@@ -1,0 +1,169 @@
+---
+title: "Detection function label management endpoints"
+sidebarTitle: "Labels"
+description: "Create, read, update, list, and delete object labels for a Nyckel detection function. Labels define the object classes your model will locate."
+---
+
+Labels for detection functions define the object classes your model will learn to locate in images. Each label corresponds to a type of object (such as "car", "person", or "defect"). Detection functions currently support one label per function.
+
+All label endpoints require an `Authorization: Bearer <accessToken>` header.
+
+## Create a label
+
+`POST /v1/functions/{functionId}/labels`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  The name of the object class to detect (e.g. `"Car"` or `"Defect"`).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description of the object class.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Optional key/value metadata dictionary.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Bird","description":"A bird in flight"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "name": "Bird",
+    "description": "A bird in flight"
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/labels', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "name": "Bird", "description": "A bird in flight" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+**Response**
+
+<ResponseField name="id" type="string">The ID of the created label.</ResponseField>
+<ResponseField name="name" type="string">The label name.</ResponseField>
+<ResponseField name="description" type="string">The label description.</ResponseField>
+<ResponseField name="metadata" type="object">Key/value metadata.</ResponseField>
+
+```json
+{
+  "name": "Bird",
+  "description": "A bird in flight",
+  "id": "label_2n5a7za51n329v0l"
+}
+```
+
+## Read a label
+
+`GET /v1/functions/{functionId}/labels/{labelId}`
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels/<labelId>'
+```
+
+**Response**
+
+```json
+{
+  "name": "Bird",
+  "id": "label_2n5a7za51n329v0l"
+}
+```
+
+## Update a label
+
+`PUT /v1/functions/{functionId}/labels/{labelId}`
+
+<ParamField body="name" type="string" required>
+  The updated label name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Updated metadata dictionary.
+</ParamField>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Flying Bird"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels/<labelId>'
+```
+
+**Response**
+
+```json
+{
+  "name": "Flying Bird",
+  "id": "label_2n5a7za51n329v0l"
+}
+```
+
+## List labels
+
+`GET /v1/functions/{functionId}/labels`
+
+<ParamField query="count" type="integer">Maximum number of labels to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels'
+```
+
+**Response**
+
+```json
+[
+  { "name": "Bird", "id": "label_2n5a7za51n329v0l" }
+]
+```
+
+## Delete a label
+
+`DELETE /v1/functions/{functionId}/labels/{labelId}`
+
+<Warning>
+  Deleting the label from a detection function removes it along with all associated annotations.
+</Warning>
+
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels/<labelId>'
+```
+
+Returns an empty `200 OK` response on success.

@@ -1,0 +1,42 @@
+---
+title: "Frequently asked questions about Nyckel"
+sidebarTitle: "FAQ"
+description: "Common questions about Nyckel: AutoML pre-trained models, why you need your own training data, data privacy practices, and function accuracy variance."
+---
+
+This page covers the most common questions about how Nyckel works, what it does with your data, and what to expect from the training and invocation process.
+
+<AccordionGroup>
+  <Accordion title="Do you provide pre-trained models?">
+    Yes and no. Modern machine learning almost never trains from scratch — Nyckel's AutoML system starts from pre-trained deep neural networks and tunes them to your specific data, selecting the best-performing model automatically. So all training happens from pre-trained models, but those models aren't exposed directly to customers.
+
+    Nyckel also maintains a set of [pre-trained classifiers](https://www.nyckel.com/pretrained-classifiers) that you can use as-is or as starting points for your own functions.
+  </Accordion>
+
+  <Accordion title="Why do I need my own training data? Can't I use a model off-the-shelf?">
+    All machine learning models degrade when [data drift](https://www.nyckel.com/blog/what-is-class-balance-drift-and-why-does-it-matter-for-content-moderation/) occurs — when the data a model is deployed on differs meaningfully from the data it was trained on. At minimum, you should test any off-the-shelf model against a sample of your own data before relying on it.
+
+    Here's the thing: once you've annotated 100 or so samples for testing, you might as well use that same data to tune the model. Nyckel's AutoML uses [cross-validation](https://www.nyckel.com/docs#cross-validation) to train and test iteratively on the same dataset, making it highly data-efficient. This is why Nyckel sees strong [benchmark performance](https://www.nyckel.com/blog/automl-benchmark-nyckel-google-huggingface/) even with small amounts of training data.
+
+    **The short version:**
+    - Never deploy an off-the-shelf model without testing it on your own data.
+    - To test it, annotate a sample of your own data.
+    - Once you have annotated data, use it to tune the model rather than using it directly.
+  </Accordion>
+
+  <Accordion title="Why does it matter that training takes seconds?">
+    Iterating on data is the most effective way to improve any machine learning system. A faster training loop means you can try more things — different label structures, input preprocessing strategies, column selections for tabular data, and more. Nyckel's fast training is designed to make that iteration practical rather than painful.
+  </Accordion>
+
+  <Accordion title="How is my training and invoke data treated?">
+    Nyckel's infrastructure runs on AWS, and all data stays within standard AWS services (S3, RDS, ECS). Your training data is never shared with other customers and is not used to train functions for anyone else.
+
+    Nyckel captures "informative" invoke data — for example, samples where the model was not confident, or samples similar to ones where the model previously made mistakes — to assist with active learning. This data is intended to support manual review and model improvement. You can opt out of invoke capture.
+
+    Select Nyckel employees may access your data for troubleshooting and model accuracy improvement.
+  </Accordion>
+
+  <Accordion title="When I copy a function, the accuracies are different. Why?">
+    Small variations in estimated accuracy are expected. Nyckel reports accuracy using [cross-validation](https://www.nyckel.com/docs#cross-validation), and the random splits used for cross-validation can differ between copies of a function. The actual deployed model performance — what you get at invoke time — is identical between copies.
+  </Accordion>
+</AccordionGroup>

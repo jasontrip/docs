@@ -1,0 +1,127 @@
+---
+title: "POST /v1/functions/{functionId}/invoke — Detection"
+sidebarTitle: "Invoke"
+description: "Invoke a Nyckel detection function to locate objects in an image. Returns label names, confidence scores, and normalized object coordinates."
+---
+
+Detection functions locate objects within an image and return the position of each detected object. Depending on the function type, the response contains either center-point coordinates (`x`, `y`) for `Locate` functions or bounding box coordinates for `BoundingBoxLocate` functions.
+
+All invoke requests require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  Detection invoke uses the `POST /v0.9/functions/{functionId}/locate` endpoint, which differs from classification and search. Ensure you use the correct path.
+</Note>
+
+## Invoke with an image URL
+
+`POST /v0.9/functions/{functionId}/locate`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/scene.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={"data": "https://example.com/scene.jpg"})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/locate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "https://example.com/scene.jpg" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Invoke with image bytes
+
+Use `multipart/form-data` to upload a raw image file.
+
+<ParamField body="data" type="file" required>
+  The image file to process (sent as a form field named `data`).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/scene.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/locate'
+```
+
+## Response
+
+The response is an array of `Prediction` objects, one per detected label. Each prediction includes a list of `points` where the label was detected.
+
+<ResponseField name="labelId" type="string">
+  The ID of the detected label.
+</ResponseField>
+
+<ResponseField name="points" type="array">
+  A list of point predictions where the label was detected.
+
+  <Expandable title="PointPrediction object">
+    <ResponseField name="x" type="number">
+      X coordinate of the detection, expressed as a fraction of image width (0 = left edge, 1 = right edge).
+    </ResponseField>
+    <ResponseField name="y" type="number">
+      Y coordinate of the detection, expressed as a fraction of image height (0 = top edge, 1 = bottom edge).
+    </ResponseField>
+    <ResponseField name="confidence" type="number">
+      Confidence value between 0 and 1 that the object is present at this location.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example response (center-point detection)**
+
+```json
+[
+  {
+    "labelId": "label_2n5a7za51n329v0l",
+    "points": [
+      {
+        "x": 0.25,
+        "y": 0.78,
+        "confidence": 0.85
+      }
+    ]
+  }
+]
+```
+
+<Note>
+  Coordinates are normalized fractions (0–1), not pixel values. To convert to pixels, multiply `x` by the image width and `y` by the image height.
+</Note>
+
+## Training requirements
+
+Before calling invoke, your detection function must be trained. The minimum requirements are:
+
+1. Create a detection function with output type `Localization`.
+2. Create at least one label.
+3. Add image samples and annotate at least **2 images** with object locations (zero-object annotations do not count toward this minimum).
+4. Wait up to 60 seconds for training to complete.

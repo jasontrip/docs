@@ -1,0 +1,107 @@
+---
+title: "Supported data types in Nyckel"
+sidebarTitle: "Data Types"
+description: "Nyckel functions accept Text, Image, and Tabular input data. Learn the exact request and response formats for each data type in the API."
+---
+
+Nyckel supports three input data types: `Text`, `Image`, and `Tabular`. The data type you choose when creating a function determines how you send input in invoke and sample requests, and how responses return data back to you.
+
+## Text
+
+Use `Text` functions for any string-based classification task — spam detection, sentiment analysis, intent recognition, and similar use cases.
+
+**Requests:** send the text as a JSON string in the `data` field.
+
+```json request body
+{
+  "data": "Your input text here"
+}
+```
+
+**Responses:** the `data` field in the response is also a JSON string.
+
+```json response body
+{
+  "data": "Your input text here",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+<Note>
+  Nyckel's text models use Large Language Models with a context length of 512 tokens, which corresponds roughly to 300–500 words. See [Model training](/concepts/model-training) for guidance on handling longer texts.
+</Note>
+
+## Image
+
+Use `Image` functions to classify, tag, search, or detect objects within images.
+
+**Requests:** images can be provided in two ways:
+
+1. **URL or data URI** — include the image URL or [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme) as a JSON string in the `data` field, with `Content-Type: application/json`.
+
+   ```json request body
+   {
+     "data": "https://example.com/images/photo.jpg"
+   }
+   ```
+
+   Or as a data URI:
+
+   ```json request body
+   {
+     "data": "data:image/jpeg;base64,/9j/4AAQSkZJRgAB..."
+   }
+   ```
+
+2. **Raw bytes** — send the image as a `multipart/form-data` request with the image file in the `data` field.
+
+   ```bash curl
+   curl -X POST \
+     -H 'Authorization: Bearer <accessToken>' \
+     -F 'data=@/path/to/image.jpg' \
+     'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+   ```
+
+**Responses:** the `data` field will be either:
+
+- A URL pointing to the stored image resource
+- A [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme) containing the image inline
+
+## Tabular
+
+Use `Tabular` functions to train models on structured rows of data, where each row contains multiple named fields.
+
+**Requests:** send tabular data as a JSON object in the `data` field. Keys are either field `id` values or field `name` values. Value types depend on the field type:
+
+| Field type | JSON value type | Example |
+|---|---|---|
+| `Text` | String | `"United States"` |
+| `Number` | Number | `42` or `3.14` |
+| `Image` | String (URL or data URI) | `"https://example.com/img.jpg"` |
+
+```json request body
+{
+  "data": {
+    "country": "United States",
+    "loginType": "Google",
+    "avgTimeOnSite": "2h4m"
+  }
+}
+```
+
+You can also reference fields by their `id` instead of their name:
+
+```json request body
+{
+  "data": {
+    "field_85osy5xwjcscc08o": "United States",
+    "field_abc123": "Google"
+  }
+}
+```
+
+**Responses:** the `data` field is a JSON object with values as JSON strings or numbers, depending on the field types.
+
+<Tip>
+  Using field names in requests is more readable. Using field IDs is slightly more robust to field renames.
+</Tip>

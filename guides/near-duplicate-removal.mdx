@@ -1,0 +1,74 @@
+---
+title: "Remove near-duplicate images using semantic search"
+sidebarTitle: "Deduplication"
+description: "Use a Nyckel image search function to detect and remove near-duplicate images — including copies that differ only in compression, size, or color."
+---
+
+Standard deduplication compares binary file contents, which works well for exact copies but fails as soon as any modification is made to an image. Even changes that are invisible to the human eye produce a completely different binary representation, causing standard tools to miss the duplicate entirely.
+
+Common modifications that break binary deduplication include:
+
+- Recoding the image to a different file format
+- Resizing the image in pixels
+- Changing image size in bytes by adjusting JPEG quality
+- Tuning color or brightness
+- Minor cropping
+
+## How semantic deduplication works
+
+To find near-duplicates, you need to compare images by their visual content rather than their bytes. The approach is to encode each image using a deep neural network, then compare the resulting vectors. Images that are close in this vector space are visually similar — and likely near-duplicates.
+
+Nyckel's [Image Search function](https://www.nyckel.com/docs/image-search-quickstart) handles the encoding and distance computation for you. By searching each image against the index with `sampleCount=2`, you retrieve the closest match (excluding the image itself). If the distance to that match is below 1%, the two images are near-duplicates.
+
+## Algorithm
+
+The following pseudocode describes the full deduplication process.
+
+**Input:** a set of images to deduplicate
+
+<Steps>
+  <Step title="Create an Image Search function">
+    Use the [Create function](https://www.nyckel.com/docs#create-function) endpoint to create a new Image Search function. This function serves as a temporary index for the deduplication run.
+  </Step>
+
+  <Step title="Add all images to the function">
+    Upload each image using the [Create image sample](https://www.nyckel.com/docs#search-create-image-sample) endpoint. Store the returned `id` for each image — you'll need it in the next step.
+  </Step>
+
+  <Step title="Search the function for each image">
+    For each image, call the search endpoint with `sampleCount=2`. Store the full response for each image.
+
+    Using `sampleCount=2` returns two results: the first will always be the image itself (a self-match), and the second will be the closest distinct neighbor.
+  </Step>
+
+  <Step title="Identify near-duplicate pairs">
+    For each image `IMG`:
+
+    1. Retrieve the search response for `IMG`.
+    2. Read the **second** `searchSample` entry in the response (skip the first — it's the self-match).
+    3. If `searchSample.distance` is less than **1%**, then `IMG` and `searchSample.sampleId` are near-duplicates.
+
+    Collect all identified pairs and remove duplicates according to your preferred deduplication policy (e.g., keep the highest-resolution copy).
+  </Step>
+
+  <Step title="Delete the function">
+    Once deduplication is complete, delete the temporary Image Search function using the [Delete function](https://www.nyckel.com/docs#delete-function) endpoint to clean up.
+  </Step>
+</Steps>
+
+## Code sample
+
+A complete Python implementation is available in the [Nyckel codesamples repository](https://github.com/NyckelAI/codesamples/tree/main/near_duplicate_deduper).
+
+```bash
+python -m dedupe <nyckel_client_id> <nyckel_secret_id> <path_to_folder_with_image_files>
+```
+
+## Optional speed-ups
+
+<Tip>
+  For large image sets, these two optimizations can significantly reduce total runtime:
+
+  1. **Resize images to 224×224 pixels** before uploading. This reduces upload time with no meaningful impact on deduplication quality.
+  2. **Use multithreading** for steps 2 and 3 (adding images and searching). Both are network-bound operations that parallelize well.
+</Tip>

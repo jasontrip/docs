@@ -1,0 +1,94 @@
+---
+title: "Nyckel REST API overview and authentication"
+description: "Overview of the Nyckel REST API: base URL, Bearer token authentication, supported data types, error codes, rate limits, and resource ID format."
+---
+
+The Nyckel REST API is a set of HTTPS endpoints that let you create and invoke machine learning functions from any language or environment. All requests go to the base URL `https://www.nyckel.com` and must include a valid Bearer token.
+
+## Base URL
+
+```
+https://www.nyckel.com
+```
+
+All endpoint paths in this reference are relative to this base URL. For example, the invoke endpoint for a classification function is:
+
+```
+POST https://www.nyckel.com/v1/functions/{functionId}/invoke
+```
+
+## Authentication
+
+Every request to the Nyckel API must include an `Authorization` header containing a JWT Bearer token.
+
+```
+Authorization: Bearer <accessToken>
+```
+
+Access tokens are short-lived (1 hour) and are obtained by calling the `POST /connect/token` endpoint with your `client_id` and `client_secret`. See [Authentication](/authentication) for step-by-step instructions on getting a token.
+
+<Note>
+  Tokens expire after **3600 seconds** (1 hour). Your application should obtain a new token before the current one expires to ensure uninterrupted access.
+</Note>
+
+## Data types
+
+Nyckel supports three input data types. The data type is set when you create a function and determines how input data is supplied in requests.
+
+| Data type | Description |
+|-----------|-------------|
+| `Text` | Plain text passed as a JSON string in the `data` field. |
+| `Image` | An image supplied as a publicly accessible URL, a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme), or raw bytes via `multipart/form-data`. |
+| `Tabular` | A JSON object with field IDs or names as keys (`{"key": "value", ...}`). Values are strings for `Text`/`Image` fields and numbers for `Number` fields. |
+
+For full details on how each data type is serialized in requests and responses, see the [Data Types](/concepts/data-types) reference.
+
+## Error responses
+
+All error responses (4xx and 5xx) share the same JSON schema:
+
+```json
+{
+  "message": "A description of the error."
+}
+```
+
+<ResponseField name="message" type="string">
+  A textual description of the error encountered.
+</ResponseField>
+
+### Error codes
+
+| Code | Meaning |
+|------|---------|
+| `402` | **Billing issue.** You have most likely exceeded the free tier quota. |
+| `403` | **Forbidden.** Check your credentials and ensure your token is valid. |
+| `409` | **Resource conflict.** Commonly raised when attempting to create a sample that already exists. Nyckel does not allow duplicate samples. To change an existing sample's label, use the `PUT .../annotation` endpoint instead. |
+| `429` | **Throttled.** You have exceeded the rate limit. See [Rate limits](#rate-limits) below. |
+| `500` | **Internal error.** Retry the request, ideally with exponential backoff. |
+| `503` | **Service temporarily unavailable.** Retry the request, ideally with exponential backoff. |
+
+## Rate limits
+
+Nyckel enforces two independent throttling mechanisms:
+
+- **Rate limit:** 25 requests per second (RPS) per account.
+- **Concurrency limit:** 25 concurrent in-flight requests per account.
+
+Exceeding either limit returns a `429` response. Both limits can be increased as part of an Enterprise plan.
+
+<Tip>
+  Implement exponential backoff when you receive `429`, `500`, or `503` responses to avoid overwhelming the API during transient issues.
+</Tip>
+
+## ID prefixes
+
+IDs returned by the Nyckel API include a human-readable prefix followed by an underscore and an alphanumeric identifier. For example:
+
+```
+label_2n5a7za51n329v0l
+sample_2n5a7za51n329v0l
+function_85osy5xwjcscc08o
+```
+
+Although the API will accept just the alphanumeric portion, treat the **full string including the prefix** as the ID for better readability and to avoid ambiguity across resource types.

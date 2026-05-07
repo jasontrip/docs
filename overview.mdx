@@ -1,0 +1,54 @@
+---
+title: "Overview"
+---
+
+
+
+## What you can build
+
+| Function type | What it does |
+| --- | --- |
+| **Classification** | Assigns a single label to text, image, or tabular input |
+| **Tags** | Assigns multiple labels to a single input |
+| **Search** | Returns the most semantically similar items from a corpus |
+| **Detection** | Locates and classifies objects within images |
+| **OCR** | Extracts text from images |
+
+## How it works
+
+Every Nyckel function follows the same lifecycle:
+
+1. **Create** — define a function with an input type (`Text`, `Image`, or `Tabular`) and an output type (e.g., `Classification`)
+2. **Add samples** — upload examples of your input data
+3. **Annotate** — label each sample with the correct output
+4. **Invoke** — call the `/invoke` endpoint; Nyckel trains automatically in the background and returns predictions immediately
+
+The model retrains every time you add or annotate new samples, so accuracy improves continuously without any action on your part.
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key-round" href="/authentication">
+    Get your client credentials and generate a Bearer token to authenticate API requests.
+  </Card>
+
+  <Card title="Text classification" icon="text-cursor" href="/quickstarts/text-classification">
+    Build a spam classifier for Instagram comments in under 5 minutes.
+  </Card>
+
+  <Card title="Image classification" icon="image" href="/quickstarts/image-classification">
+    Train a custom image classifier using labeled image samples.
+  </Card>
+
+  <Card title="Tabular classification" icon="table" href="/quickstarts/tabular-classification">
+    Predict outcomes from structured data like demographics or usage metrics.
+  </Card>
+
+  <Card title="API reference" icon="code-2" href="/api-reference/overview">
+    Full reference for invoke, label, sample, and function endpoints.
+  </Card>
+
+  <Card title="Python SDK" icon="terminal" href="/integrations/python-sdk">
+    Use the Nyckel Python package for a more Pythonic ML workflow.
+  </Card>
+</CardGroup>

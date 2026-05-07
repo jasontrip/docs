@@ -1,0 +1,218 @@
+---
+title: "Image classification quickstart with Nyckel"
+sidebarTitle: "Image Classification"
+description: "Train a custom image classifier using the Nyckel API. Upload labeled images and invoke predictions in minutes with no ML expertise."
+---
+
+Nyckel image classification lets you assign labels to images using a model trained on your own data. In this guide you will build a plant health classifier — the same use case used by [Gardyn](https://www.nyckel.com/blog/gardyn-image-classification-case-study/) — from creating the function to invoking predictions.
+
+## Prerequisites
+
+You need a Nyckel access token. See [Authentication](/authentication) for how to get one.
+
+## Build the classifier
+
+<Steps>
+  <Step title="Create the function">
+    Create a new `Classification` function with `Image` input. Save the `id` from the response — you will use it as `<functionId>` in subsequent calls.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"Plant Health Classifier","input":"Image","output":"Classification"}' \
+      'https://www.nyckel.com/v1/functions'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    result = requests.post(url, headers=headers, json={
+        "name": "Plant Health Classifier",
+        "input": "Image",
+        "output": "Classification"
+    })
+    print(result.json())
+    ```
+
+    </CodeGroup>
+
+    ```json example response
+    {
+      "id": "function_xyz789",
+      "name": "Plant Health Classifier",
+      "input": "Image",
+      "output": "Classification"
+    }
+    ```
+  </Step>
+
+  <Step title="Create labels">
+    Define the categories your function can predict. Save each label `id` for use when uploading samples.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"healthy"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/labels'
+
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"unhealthy"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/labels'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    for name in ['healthy', 'unhealthy']:
+        result = requests.post(url, headers=headers, json={"name": name})
+        print(result.json())
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Upload image samples">
+    Images can be sent in two ways: as a publicly accessible URL, or as raw bytes using `multipart/form-data`. Both approaches are shown below.
+
+    #### Option A: Send an image URL
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"data":"https://example.com/images/healthy-plant.jpg","annotation":{"labelId":"label_healthy123"}}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    samples = [
+        {
+            "data": "https://example.com/images/healthy-plant.jpg",
+            "annotation": {"labelId": "label_healthy123"}
+        },
+        {
+            "data": "https://example.com/images/wilted-plant.jpg",
+            "annotation": {"labelId": "label_unhealthy456"}
+        },
+    ]
+
+    for sample in samples:
+        result = requests.post(url, headers=headers, json=sample)
+        print(result.json())
+    ```
+
+    </CodeGroup>
+
+    #### Option B: Send image bytes
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -F 'data=@/path/to/healthy-plant.jpg' \
+      -F 'annotation={"labelId":"label_healthy123"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    with open('/path/to/healthy-plant.jpg', 'rb') as f:
+        result = requests.post(
+            url,
+            headers=headers,
+            files={'data': f},
+            data={'annotation': '{"labelId":"label_healthy123"}'}
+        )
+    print(result.json())
+    ```
+
+    </CodeGroup>
+
+    <Note>
+      You can also send images as [data URIs](https://en.wikipedia.org/wiki/Data_URI_scheme) in JSON requests (`"data": "data:image/jpeg;base64,..."`) if you prefer to avoid multipart encoding.
+    </Note>
+
+    <Tip>
+      Upload at least 10–20 images per label. Use images similar to what your function will see in production for the best accuracy.
+    </Tip>
+  </Step>
+
+  <Step title="Wait for training">
+    Nyckel trains your model automatically once you have annotated samples for at least two labels. Training typically completes within about 20 seconds for small datasets. You can monitor progress in the [console](https://www.nyckel.com/console).
+  </Step>
+
+  <Step title="Invoke the function">
+    Call `/invoke` with a new image to get a prediction. You can send the image as a URL or as raw bytes.
+
+    <CodeGroup>
+
+    ```bash curl
+    # Invoke with a URL
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"data":"https://example.com/images/new-plant.jpg"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    # Invoke with a URL
+    result = requests.post(url, headers=headers, json={
+        "data": "https://example.com/images/new-plant.jpg"
+    })
+    print(result.json())
+
+    # Or invoke with image bytes
+    with open('/path/to/new-plant.jpg', 'rb') as f:
+        result = requests.post(url, headers=headers, files={'data': f})
+    print(result.json())
+    ```
+
+    </CodeGroup>
+
+    ```json example response
+    {
+      "labelName": "healthy",
+      "labelId": "label_healthy123",
+      "confidence": 0.89
+    }
+    ```
+  </Step>
+</Steps>
+
+## Next steps
+
+- Add more labeled images to improve accuracy — more data is always better
+- Use the `labelCount` query parameter to return the top N predictions with confidence scores
+- See [Data types](/concepts/data-types) for the full specification of image input formats

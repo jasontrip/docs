@@ -1,0 +1,119 @@
+---
+title: "Authenticate"
+description: "Learn how to get your ClientId and ClientSecret from the Nyckel console and exchange them for a Bearer token to authenticate API requests."
+---
+
+Nyckel uses the OAuth 2.0 client credentials flow. Every API request must include an `Authorization: Bearer <token>` header. You obtain the token by exchanging your `ClientId` and `ClientSecret` for a short-lived access token using the `connect/token` endpoint.
+
+## Step 1: Sign up or sign in
+
+Go to [nyckel.com](https://www.nyckel.com) and sign up for a free account, or sign in if you already have one.
+
+## Step 2: Get your client credentials
+
+Navigate to the [Security](https://www.nyckel.com/console/security) page in the Nyckel console. You will find your `ClientId` and `ClientSecret` there. Copy both values and store them in your application's configuration.
+
+<Warning>
+  Never expose your `ClientSecret` in client-side code, public repositories, or anywhere it could be read by untrusted parties. Treat it like a password.
+</Warning>
+
+## Step 3: Create an access token
+
+Send a `POST` request to `connect/token` with your credentials as form-encoded body parameters.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$clientId = '<clientId>';
+$clientSecret = '<clientSecret>';
+
+$ch = curl_init();
+
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=' . $clientId . '&client_secret=' . $clientSecret
+);
+
+$headers = [];
+$headers[] = 'Content-Type: application/x-www-form-urlencoded';
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+### Response
+
+A successful request returns a JSON object with the following fields:
+
+| Field | Description |
+| --- | --- |
+| `access_token` | The token to use in subsequent API requests. |
+| `token_type` | Always `Bearer` for Nyckel. |
+| `expires_in` | Seconds until the token expires. Currently `3600` (one hour). |
+
+```json example response
+{
+  "access_token": "<accessToken>",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+## Step 4: Use the token
+
+Include the access token in the `Authorization` header of every API request:
+
+```bash
+Authorization: Bearer <accessToken>
+```
+
+For example, to list your functions:
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+<Note>
+  Access tokens expire after one hour (`expires_in: 3600`). Request a new token before it expires to ensure uninterrupted API access.
+</Note>

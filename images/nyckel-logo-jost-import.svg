@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="104" height="22" viewBox="0 0 104 22" aria-label="Nyckel logo">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Jost:wght@700&amp;display=swap');
+      .icon-box { fill: #1e5c97; }
+      .icon-text { fill: #fff; font-family: 'Jost', sans-serif; font-size: 14.4px; font-weight: 700; letter-spacing: -0.02em; dominant-baseline: central; text-anchor: middle; }
+      .logo-text { fill: #1e5c97; font-family: 'Jost', sans-serif; font-size: 16.8px; font-weight: 700; letter-spacing: -0.025em; dominant-baseline: central; }
+    </style>
+  </defs>
+  <rect class="icon-box" x="0" y="0" width="22" height="22" rx="5" ry="5"/>
+  <text class="icon-text" x="11" y="11.4">N</text>
+  <text class="logo-text" x="30" y="11.2">Nyckel</text>
+</svg>

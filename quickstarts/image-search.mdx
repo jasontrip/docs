@@ -1,0 +1,319 @@
+---
+title: "Semantic image search quickstart with Nyckel"
+description: "Build a semantic image search function with Nyckel. Add image samples and search by image or text query to find visually similar results."
+sidebarTitle: "Image Search"
+---
+
+Nyckel's image search function lets you index a collection of images and then query that collection to find visually similar results — either by submitting another image or by entering a free-form text description. No labels or training annotations are required; Nyckel learns visual semantics from your uploaded samples automatically. This guide demonstrates building a search index using the [Unsplash](https://unsplash.com/data) dataset.
+
+<Note>
+  You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+Obtain a Bearer token by posting your credentials to the token endpoint. Tokens expire after 3600 seconds.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Create a search function">
+
+Create a search function by setting `input` to `Image` and `output` to `Search`. No labels are needed — semantic similarity is derived directly from the uploaded images.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"image-search","input":"Image","output":"Search"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'image-search',
+    'input': 'Image',
+    'output': 'Search'
+})
+print(result.json())
+# {"name": "image-search", "input": "Image", "output": "Search", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'image-search', input: 'Image', output: 'Search' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '{"name":"image-search","input":"Image","output":"Search"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response. You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Add images to the index">
+
+Upload images by URL to populate your search index. Each uploaded image becomes a searchable sample. Optionally provide an `externalId` to map results back to your own system's identifiers.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/sunset-beach.jpg","externalId":"photo_001"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+images = [
+    {'url': 'https://example.com/sunset-beach.jpg', 'id': 'photo_001'},
+    {'url': 'https://example.com/mountain-trail.jpg', 'id': 'photo_002'},
+    {'url': 'https://example.com/city-skyline.jpg', 'id': 'photo_003'},
+]
+
+for image in images:
+    result = requests.post(url, headers=headers, json={
+        'data': image['url'],
+        'externalId': image['id']
+    })
+    print(result.json())
+```
+
+```javascript javascript
+const images = [
+  { url: 'https://example.com/sunset-beach.jpg', id: 'photo_001' },
+  { url: 'https://example.com/mountain-trail.jpg', id: 'photo_002' },
+];
+
+for (const image of images) {
+  fetch('https://www.nyckel.com/v1/functions/<functionId>/samples', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ data: image.url, externalId: image.id })
+  })
+    .then(response => response.json())
+    .then(data => console.log(data));
+}
+```
+
+```php php
+$images = [
+    ['url' => 'https://example.com/sunset-beach.jpg', 'id' => 'photo_001'],
+    ['url' => 'https://example.com/mountain-trail.jpg', 'id' => 'photo_002'],
+];
+
+foreach ($images as $image) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/samples');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,
+        json_encode(['data' => $image['url'], 'externalId' => $image['id']]));
+    $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    echo curl_exec($ch);
+    curl_close($ch);
+}
+```
+
+</CodeGroup>
+
+You can also upload binary image files directly using `multipart/form-data`:
+
+```bash
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@sunset-beach.jpg' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+</Step>
+
+<Step title="Search using an image or text query">
+
+Once images are indexed, search the collection using either a query image URL or a text description. Both use the same `invoke` endpoint with a `data` body field.
+
+**Search by image URL:**
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/query-image.jpg"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers,
+    params={'sampleCount': 5},
+    json={'data': 'https://example.com/query-image.jpg'})
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ data: 'https://example.com/query-image.jpg' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, '{"data":"https://example.com/query-image.jpg"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+**Search by text description:**
+
+```bash
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"golden sunset over the ocean"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/invoke?sampleCount=5'
+```
+
+The response returns an array of matching samples ranked by similarity. Lower `distance` values indicate closer matches:
+
+```json
+[
+  {
+    "sampleId": "sample_abc123",
+    "distance": 0.12,
+    "externalId": "photo_001"
+  },
+  {
+    "sampleId": "sample_def456",
+    "distance": 0.34,
+    "externalId": "photo_003"
+  }
+]
+```
+
+<Tip>
+  Use the optional `sampleCount` query parameter (1–100) to control how many results are returned. By default, only the single closest match is returned. Add `includeData=true` to also receive the image data for each result.
+</Tip>
+
+</Step>
+
+</Steps>

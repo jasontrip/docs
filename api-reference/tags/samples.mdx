@@ -1,0 +1,213 @@
+---
+title: "Tags function sample management endpoints"
+sidebarTitle: "Samples"
+description: "Add, annotate, list, and delete training samples for a Nyckel tags function. Multi-label annotations let you assign multiple applicable labels to each sample."
+---
+
+Samples for a tags function follow the same structure as classification samples, with one key difference: annotations are **arrays** of label assignments, not a single label. Each annotation entry can also include a `present` field to mark whether a given tag applies or does not apply to the sample.
+
+All sample endpoints require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  Tags function sample endpoints use API version `v0.9`. Nyckel does not allow duplicate samples — attempting to create one returns a `409` conflict.
+</Note>
+
+## Create a sample
+
+`POST /v0.9/functions/{functionId}/samples`
+
+### Text sample
+
+<ParamField body="data" type="string" required>
+  The text content of the sample.
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  Your unique identifier for this sample.
+</ParamField>
+
+<ParamField body="annotation" type="array">
+  An optional array of `Annotation` objects specifying which labels apply to this sample.
+
+  <Expandable title="Annotation object">
+    <ParamField body="labelId" type="string">The ID of the label.</ParamField>
+    <ParamField body="labelName" type="string">The name of the label. Ignored if `labelId` is specified.</ParamField>
+    <ParamField body="present" type="boolean">Whether the label applies to this sample. Defaults to `true`.</ParamField>
+  </Expandable>
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"The eagle soared overhead.","annotation":[{"labelName":"Bird","present":true},{"labelName":"Wildlife","present":true}]}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": "The eagle soared overhead.",
+    "annotation": [
+        {"labelName": "Bird", "present": True},
+        {"labelName": "Wildlife", "present": True}
+    ]
+})
+print(result.text)
+```
+</CodeGroup>
+
+### Image sample (URL)
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/scene.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+### Image sample (bytes)
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/scene.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+### Tabular sample
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_76jk77g59vawcoz8":"John","field_b2jpqb1r2fsfs2s9":"Doe"}}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+**Create response**
+
+```json
+{
+  "data": "The eagle soared overhead.",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+## Read a sample
+
+`GET /v0.9/functions/{functionId}/samples/{sampleId}`
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>'
+```
+
+**Response**
+
+<ResponseField name="id" type="string">The sample ID.</ResponseField>
+<ResponseField name="data" type="string | object">The input data.</ResponseField>
+<ResponseField name="annotation" type="array">
+  Array of annotation objects, each with `labelId` and `present`.
+</ResponseField>
+<ResponseField name="prediction" type="array">
+  Array of prediction objects, each with `labelId` and `confidence`.
+</ResponseField>
+
+```json
+{
+  "annotation": [
+    { "labelId": "label_2n5a7za51n329v0l", "present": true }
+  ],
+  "data": "The eagle soared overhead.",
+  "externalId": "MyId-123",
+  "id": "sample_2n5a7za51n329v0l",
+  "prediction": [
+    { "labelId": "label_2n5a7za51n329v0l", "confidence": 0.76 }
+  ]
+}
+```
+
+## List samples
+
+`GET /v0.9/functions/{functionId}/samples`
+
+<ParamField query="count" type="integer">Maximum number of samples to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+<ParamField query="externalId" type="string">Filter to the sample with this `externalId`.</ParamField>
+<ParamField query="createdBefore" type="string">Return samples created on or before this date (RFC 3339).</ParamField>
+<ParamField query="createdAfter" type="string">Return samples created on or after this date (RFC 3339).</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+## Delete a sample
+
+`DELETE /v0.9/functions/{functionId}/samples/{sampleId}`
+
+```bash curl
+# Delete by ID
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>'
+
+# Delete by externalId
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples?externalId=<externalId>'
+```
+
+## Annotate a sample
+
+`PUT /v0.9/functions/{functionId}/samples/{sampleId}/annotation`
+
+For tags functions, the annotation body is an **array** of annotation objects. Send all labels (both present and absent) in a single call — this replaces any existing annotation.
+
+<ParamField body="" type="array" required>
+  Array of annotation objects.
+
+  <Expandable title="Annotation object">
+    <ParamField body="labelId" type="string">The ID of the label.</ParamField>
+    <ParamField body="labelName" type="string">The name of the label. Ignored if `labelId` is specified.</ParamField>
+    <ParamField body="present" type="boolean">Whether the label is present in the sample. Defaults to `true`.</ParamField>
+  </Expandable>
+</ParamField>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '[{"labelId":"label_2n5a7za51n329v0l","present":true},{"labelId":"label_h77q8ylibkv6x730","present":false}]' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+**Response**
+
+```json
+[
+  { "labelId": "label_2n5a7za51n329v0l", "labelName": "Bird", "present": true },
+  { "labelId": "label_h77q8ylibkv6x730", "labelName": "Cat", "present": false }
+]
+```
+
+## Unannotate a sample
+
+`DELETE /v0.9/functions/{functionId}/samples/{sampleId}/annotation`
+
+Removes all annotations from the sample.
+
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```

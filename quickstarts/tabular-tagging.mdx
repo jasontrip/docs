@@ -1,0 +1,511 @@
+---
+title: "Tabular data tagging quickstart with Nyckel"
+description: "Train a multi-label tabular tagger using the Nyckel API. Assign multiple tags to structured data records using your custom categories."
+sidebarTitle: "Tabular Tagging"
+---
+
+Tabular tagging applies multi-label classification to structured data records. Each record is described by a set of named fields — which can hold text, numbers, or image URLs — and the model learns to apply multiple tags to each record simultaneously. This guide demonstrates the workflow using the [TweetTopic](https://huggingface.co/datasets/cardiffnlp/tweet_topic_multi) dataset from the University of Cardiff, where tweet metadata fields are used to predict multiple topic tags.
+
+<Note>
+  You will need a Nyckel account to follow this guide. Your `clientId` and `clientSecret` are available in the [Security section](https://www.nyckel.com/console/security) of your account console.
+</Note>
+
+<Steps>
+
+<Step title="Authenticate">
+
+Obtain a Bearer token by posting your credentials to the token endpoint. Tokens expire after 3600 seconds.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>' \
+  'https://www.nyckel.com/connect/token'
+```
+
+```python python
+import requests
+
+token_url = 'https://www.nyckel.com/connect/token'
+data = {
+    'grant_type': 'client_credentials',
+    'client_id': '<clientId>',
+    'client_secret': '<clientSecret>'
+}
+
+result = requests.post(token_url, data=data)
+access_token = result.json()['access_token']
+print(access_token)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/connect/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>'
+})
+  .then(response => response.json())
+  .then(data => console.log(data.access_token));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/connect/token');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  'grant_type=client_credentials&client_id=<clientId>&client_secret=<clientSecret>');
+$headers = ['Content-Type: application/x-www-form-urlencoded'];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Create a tagging function">
+
+Create a tabular tagging function by setting `input` to `Tabular` and `output` to `Tags`.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"tweet-topic-tagger","input":"Tabular","output":"Tags"}' \
+  'https://www.nyckel.com/v1/functions'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'name': 'tweet-topic-tagger',
+    'input': 'Tabular',
+    'output': 'Tags'
+})
+print(result.json())
+# {"name": "tweet-topic-tagger", "input": "Tabular", "output": "Tags", "id": "function_..."}
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ name: 'tweet-topic-tagger', input: 'Tabular', output: 'Tags' })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '{"name":"tweet-topic-tagger","input":"Tabular","output":"Tags"}');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Note the `id` from the response. You will use it as `<functionId>` in all subsequent requests.
+
+</Step>
+
+<Step title="Define fields">
+
+Define the schema for your tabular records by creating fields. Each field has a `name` and a `type` (`Text`, `Number`, or `Image`). Save the field `id` from each response to use it as the key when submitting samples.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"tweet_text","type":"Text"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/fields'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/fields'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+fields = [
+    {'name': 'tweet_text', 'type': 'Text'},
+    {'name': 'retweet_count', 'type': 'Number'},
+    {'name': 'user_verified', 'type': 'Text'},
+]
+
+field_ids = {}
+for field in fields:
+    result = requests.post(url, headers=headers, json=field)
+    created = result.json()
+    field_ids[field['name']] = created['id']
+    print(created)
+```
+
+```javascript javascript
+const fields = [
+  { name: 'tweet_text', type: 'Text' },
+  { name: 'retweet_count', type: 'Number' },
+];
+
+for (const field of fields) {
+  fetch('https://www.nyckel.com/v1/functions/<functionId>/fields', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(field)
+  })
+    .then(response => response.json())
+    .then(data => console.log(data));
+}
+```
+
+```php php
+$fields = [
+    ['name' => 'tweet_text', 'type' => 'Text'],
+    ['name' => 'retweet_count', 'type' => 'Number'],
+];
+
+foreach ($fields as $field) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/fields');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($field));
+    $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    echo curl_exec($ch);
+    curl_close($ch);
+}
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Add labels">
+
+Create a label for each tag category. Save each label's `id` for the annotation step.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Sports"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/labels'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+label_names = ['Sports', 'Politics', 'Technology', 'Entertainment']
+label_ids = {}
+
+for name in label_names:
+    result = requests.post(url, headers=headers, json={'name': name})
+    label = result.json()
+    label_ids[name] = label['id']
+    print(label)
+```
+
+```javascript javascript
+const labelNames = ['Sports', 'Politics', 'Technology', 'Entertainment'];
+
+for (const name of labelNames) {
+  fetch('https://www.nyckel.com/v1/functions/<functionId>/labels', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ name })
+  })
+    .then(response => response.json())
+    .then(data => console.log(data));
+}
+```
+
+```php php
+$labelNames = ['Sports', 'Politics', 'Technology', 'Entertainment'];
+
+foreach ($labelNames as $name) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/labels');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['name' => $name]));
+    $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    echo curl_exec($ch);
+    curl_close($ch);
+}
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Add and annotate tabular samples">
+
+Submit tabular records as JSON objects, where keys are field IDs (or field names) and values are the corresponding data. Then annotate each sample with all applicable label IDs.
+
+First, add a sample:
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_85osy5xwjcscc08o":"The championship match ended in overtime with a stunning goal.","field_b2jpqb1r2fsfs2s9":1250}}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': {
+        'field_85osy5xwjcscc08o': 'The championship match ended in overtime with a stunning goal.',
+        'field_b2jpqb1r2fsfs2s9': 1250
+    }
+})
+sample_id = result.json()['id']
+print(sample_id)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    data: {
+      field_85osy5xwjcscc08o: 'The championship match ended in overtime with a stunning goal.',
+      field_b2jpqb1r2fsfs2s9: 1250
+    }
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data.id));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/samples');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'data' => [
+        'field_85osy5xwjcscc08o' => 'The championship match ended in overtime with a stunning goal.',
+        'field_b2jpqb1r2fsfs2s9' => 1250
+    ]
+]));
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+Then annotate the sample with all applicable tags:
+
+<CodeGroup>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '[{"labelId":"label_sports123"},{"labelId":"label_entertainment456"}]' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.put(url, headers=headers, json=[
+    {'labelId': 'label_sports123'},
+    {'labelId': 'label_entertainment456'}
+])
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    { labelId: 'label_sports123' },
+    { labelId: 'label_entertainment456' }
+  ])
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+curl_setopt($ch, CURLOPT_POSTFIELDS,
+  '[{"labelId":"label_sports123"},{"labelId":"label_entertainment456"}]');
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+</Step>
+
+<Step title="Invoke the function">
+
+After training, submit a new tabular record to predict its tags. Pass the field data as a JSON object with field IDs or field names as keys.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_85osy5xwjcscc08o":"New electric vehicle breaks range record on highway test.","field_b2jpqb1r2fsfs2s9":430}}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/invoke'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    'data': {
+        'field_85osy5xwjcscc08o': 'New electric vehicle breaks range record on highway test.',
+        'field_b2jpqb1r2fsfs2s9': 430
+    }
+})
+print(result.json())
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/invoke', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    data: {
+      field_85osy5xwjcscc08o: 'New electric vehicle breaks range record on highway test.',
+      field_b2jpqb1r2fsfs2s9: 430
+    }
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```php php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v0.9/functions/<functionId>/invoke');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'data' => [
+        'field_85osy5xwjcscc08o' => 'New electric vehicle breaks range record on highway test.',
+        'field_b2jpqb1r2fsfs2s9' => 430
+    ]
+]));
+$headers = [
+    'Authorization: Bearer <accessToken>',
+    'Content-Type: application/json'
+];
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+$result = curl_exec($ch);
+curl_close($ch);
+echo $result;
+```
+
+</CodeGroup>
+
+The response is an array of predicted tags with confidence scores:
+
+```json
+[
+  {
+    "labelName": "Technology",
+    "labelId": "label_technology789",
+    "confidence": 0.88
+  },
+  {
+    "labelName": "Sports",
+    "labelId": "label_sports123",
+    "confidence": 0.14
+  }
+]
+```
+
+</Step>
+
+</Steps>

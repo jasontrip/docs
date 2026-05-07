@@ -1,0 +1,123 @@
+---
+title: "POST /v1/functions/{functionId}/invoke — OCR"
+sidebarTitle: "Extract Text"
+description: "Invoke the Nyckel OCR function to extract text from an image. Send raw image bytes or a public URL and receive the full recognized text string."
+---
+
+The Nyckel OCR function extracts all readable text from an image and returns it as a single string. OCR is a pre-built function that requires no training — you simply create an OCR function and start calling the endpoint immediately.
+
+All requests require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  The OCR endpoint path is `/v0.9/functions/{functionId}/ocr`, not `/invoke`. Make sure to use this path when calling the OCR function.
+</Note>
+
+## Extract text from an image URL
+
+`POST /v0.9/functions/{functionId}/ocr`
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+<ParamField query="includeRegions" type="boolean">
+  When `true`, the response also includes the image regions where text was detected.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/document.jpg"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={"data": "https://example.com/document.jpg"})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/ocr', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ "data": "https://example.com/document.jpg" })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Extract text from image bytes
+
+Use `multipart/form-data` to upload a raw image file directly.
+
+<ParamField body="data" type="file" required>
+  The image file to extract text from (sent as a form field named `data`).
+</ParamField>
+
+<ParamField query="includeRegions" type="boolean">
+  When `true`, returns the bounding regions of detected text in addition to the text itself.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/document.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/ocr'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+with open('/path/to/document.jpg', 'rb') as f:
+    result = requests.post(url, headers=headers, files={'data': f})
+print(result.text)
+```
+
+```javascript javascript
+const form = new FormData();
+form.append('data', File(fileBytes, 'document.jpg'));
+
+fetch('https://www.nyckel.com/v0.9/functions/<functionId>/ocr', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer <accessToken>' },
+  body: form
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+## Response
+
+<ResponseField name="text" type="string">
+  All text extracted from the image, concatenated into a single string.
+</ResponseField>
+
+```json
+{
+  "text": "A bird is a common animal."
+}
+```
+
+<Tip>
+  OCR functions require no training data — create an OCR function and you can call this endpoint immediately. To create an OCR function, use `POST /v1/functions` with `"output": "Ocr"`. See [Function management](/api-reference/functions/manage) for details.
+</Tip>

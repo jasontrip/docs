@@ -1,0 +1,340 @@
+---
+title: "Classification sample management endpoints"
+sidebarTitle: "Samples"
+description: "Add, read, list, delete, and annotate training samples for a Nyckel classification function to train and continuously improve your model."
+---
+
+Samples are the training data for your classification function. Each sample pairs an input (text, image, or tabular data) with an optional annotation (a label assignment). Nyckel uses annotated samples to train the model and cross-validate accuracy.
+
+All sample endpoints require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  Nyckel does not allow duplicate samples. Attempting to create a sample that already exists returns a `409` conflict error. To change a sample's label, use the `PUT .../annotation` endpoint.
+</Note>
+
+## Create a sample
+
+`POST /v1/functions/{functionId}/samples`
+
+The request body format depends on the function's data type.
+
+### Text sample
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The text content of the sample.
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  Your own unique identifier for this sample.
+</ParamField>
+
+<ParamField body="annotation.labelId" type="string">
+  The ID of the label to assign to this sample.
+</ParamField>
+
+<ParamField body="annotation.labelName" type="string">
+  The name of the label to assign. Ignored if `annotation.labelId` is also specified.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"The eagle soared overhead.","annotation":{"labelName":"Bird"}}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": "The eagle soared overhead.",
+    "annotation": {"labelName": "Bird"}
+})
+print(result.text)
+```
+
+```javascript javascript
+fetch('https://www.nyckel.com/v1/functions/<functionId>/samples', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer <accessToken>',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    "data": "The eagle soared overhead.",
+    "annotation": { "labelName": "Bird" }
+  })
+})
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+</CodeGroup>
+
+### Image sample (URL)
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/bird.jpg","annotation":{"labelName":"Bird"}}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+### Image sample (bytes)
+
+Use `multipart/form-data` to upload a raw image file.
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/bird.jpg' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+### Tabular sample
+
+<ParamField body="data" type="object" required>
+  A JSON object mapping field IDs or names to their values.
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":{"field_76jk77g59vawcoz8":"John","field_b2jpqb1r2fsfs2s9":"Doe"}}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+**Create response**
+
+<ResponseField name="id" type="string">
+  The ID of the created sample (e.g. `sample_2n5a7za51n329v0l`).
+</ResponseField>
+
+<ResponseField name="data" type="string | object">
+  The input data associated with the sample.
+</ResponseField>
+
+<ResponseField name="externalId" type="string">
+  Your identifier, if provided.
+</ResponseField>
+
+<ResponseField name="annotation" type="object">
+  The annotation object if a label was specified at creation time. Contains `labelId`.
+</ResponseField>
+
+```json
+{
+  "data": "The eagle soared overhead.",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+## Read a sample
+
+`GET /v1/functions/{functionId}/samples/{sampleId}`
+
+<ParamField path="sampleId" type="string" required>
+  The ID of the sample to retrieve.
+</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>'
+```
+
+**Response**
+
+<ResponseField name="id" type="string">The sample ID.</ResponseField>
+<ResponseField name="data" type="string | object">The input data.</ResponseField>
+<ResponseField name="annotation" type="object">
+  The desired output. Contains `labelId` when annotated.
+</ResponseField>
+<ResponseField name="prediction" type="object">
+  The model's current prediction. Contains `labelId` and `confidence`.
+</ResponseField>
+<ResponseField name="externalId" type="string">Your identifier, if set.</ResponseField>
+
+```json
+{
+  "annotation": { "labelId": "label_2n5a7za51n329v0l" },
+  "data": "The eagle soared overhead.",
+  "externalId": "MyId-123",
+  "id": "sample_2n5a7za51n329v0l",
+  "prediction": { "labelId": "label_2n5a7za51n329v0l", "confidence": 0.76 }
+}
+```
+
+## List samples
+
+`GET /v1/functions/{functionId}/samples`
+
+<ParamField query="count" type="integer">Number of samples to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+<ParamField query="externalId" type="string">Filter to the sample with this `externalId`.</ParamField>
+<ParamField query="createdBefore" type="string">Return samples created on or before this date (RFC 3339, e.g. `2021-04-02`).</ParamField>
+<ParamField query="createdAfter" type="string">Return samples created on or after this date (RFC 3339).</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples'
+```
+
+Returns an array of sample objects with the same schema as the read endpoint.
+
+## Delete a sample
+
+`DELETE /v1/functions/{functionId}/samples/{sampleId}`
+
+You can delete by Nyckel ID or by your own `externalId`.
+
+```bash curl
+# Delete by ID
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>'
+
+# Delete by externalId
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples?externalId=<externalId>'
+```
+
+## Annotate a sample
+
+`PUT /v1/functions/{functionId}/samples/{sampleId}/annotation`
+
+Assigns or updates the label for an existing sample. Use this to correct or add an annotation without recreating the sample.
+
+<ParamField body="labelId" type="string">
+  The ID of the label to assign.
+</ParamField>
+
+<ParamField body="labelName" type="string">
+  The name of the label to assign. Ignored if `labelId` is also specified.
+</ParamField>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"labelId":"label_2n5a7za51n329v0l"}' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+**Response**
+
+```json
+{ "labelId": "label_2n5a7za51n329v0l" }
+```
+
+## Unannotate a sample
+
+`DELETE /v1/functions/{functionId}/samples/{sampleId}/annotation`
+
+Removes the label from a sample, making it unannotated. The sample remains in the function and can be re-annotated later.
+
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+## Get function summary
+
+`GET /v1/functions/{functionId}/summary`
+
+Returns aggregate counts for the function, useful for monitoring training progress.
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v1/functions/<functionId>/summary'
+```
+
+**Response**
+
+<ResponseField name="sampleCount" type="integer">Total number of samples.</ResponseField>
+<ResponseField name="annotatedSampleCount" type="integer">Total number of annotated samples.</ResponseField>
+<ResponseField name="annotatedSampleCountByLabelId" type="object">
+  A dictionary mapping each label ID to the count of annotated samples for that label.
+</ResponseField>
+
+```json
+{
+  "sampleCount": 123,
+  "annotatedSampleCount": 95,
+  "annotatedSampleCountByLabelId": {
+    "label_2n5a7za51n329v0l": 56,
+    "label_h77q8ylibkv6x730": 39
+  }
+}
+```
+
+## Sample sets
+
+Sample sets let you group samples together, for example to define a held-out test set that is excluded from training.
+
+### Create a sample set
+
+`POST /v0.9/functions/{functionId}/sample-sets`
+
+<ParamField body="name" type="string">Name of the sample set.</ParamField>
+<ParamField body="description" type="string">Description of the sample set.</ParamField>
+<ParamField body="inTrainSet" type="boolean">
+  Whether samples in this set are included in training. Set to `false` for hold-out test sets.
+</ParamField>
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Test set","description":"Hold-out evaluation set","inTrainSet":false}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/sample-sets'
+```
+
+**Response**
+
+```json
+{
+  "name": "Test set",
+  "description": "Hold-out evaluation set",
+  "inTrainSet": false,
+  "id": "sampleset_2n5a7za51n329v0l"
+}
+```
+
+### List sample sets
+
+`GET /v0.9/functions/{functionId}/sample-sets`
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/sample-sets'
+```
+
+### Delete a sample set
+
+`DELETE /v0.9/functions/{functionId}/sample-sets/{sampleSetId}`
+
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/sample-sets/<sampleSetId>'
+```

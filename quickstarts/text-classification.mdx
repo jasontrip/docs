@@ -1,0 +1,338 @@
+---
+title: "Text classification quickstart with Nyckel"
+sidebarTitle: "Text Classification"
+description: "Train and invoke a custom text classifier using the Nyckel API. Build a spam filter or any text categorizer by uploading labeled examples in minutes."
+---
+
+Nyckel text classification lets you categorize any string into labels you define. In this guide you will build a spam classifier for Instagram comments — from creating the function to invoking it on new text.
+
+## Prerequisites
+
+You need a Nyckel access token. See [Authentication](/authentication) for how to get one.
+
+## Build the classifier
+
+<Steps>
+  <Step title="Create the function">
+    Create a new `Classification` function with `Text` input. Save the `id` from the response — you will use it as `<functionId>` in every subsequent call.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"Instagram Spam Classifier","input":"Text","output":"Classification"}' \
+      'https://www.nyckel.com/v1/functions'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    result = requests.post(url, headers=headers, json={
+        "name": "Instagram Spam Classifier",
+        "input": "Text",
+        "output": "Classification"
+    })
+    print(result.json())
+    ```
+
+    ```javascript javascript
+    fetch('https://www.nyckel.com/v1/functions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <accessToken>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "name": "Instagram Spam Classifier",
+        "input": "Text",
+        "output": "Classification"
+      })
+    })
+      .then(response => response.json())
+      .then(data => console.log(data));
+    ```
+
+    ```php php
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,
+      '{"name":"Instagram Spam Classifier","input":"Text","output":"Classification"}'
+    );
+
+    $headers = [];
+    $headers[] = 'Authorization: Bearer <accessToken>';
+    $headers[] = 'Content-Type: application/json';
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $result = curl_exec($ch);
+    curl_close($ch);
+    echo $result;
+    ```
+
+    </CodeGroup>
+
+    ```json example response
+    {
+      "id": "function_abc123",
+      "name": "Instagram Spam Classifier",
+      "input": "Text",
+      "output": "Classification"
+    }
+    ```
+  </Step>
+
+  <Step title="Create labels">
+    Add the categories your function will predict. Save each label `id` — you will need them when uploading annotated samples.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"spam"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/labels'
+
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"not-spam"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/labels'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/labels'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    for name in ['spam', 'not-spam']:
+        result = requests.post(url, headers=headers, json={"name": name})
+        print(result.json())
+    ```
+
+    ```javascript javascript
+    const url = 'https://www.nyckel.com/v1/functions/<functionId>/labels';
+    const headers = {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    };
+
+    for (const name of ['spam', 'not-spam']) {
+      fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name })
+      })
+        .then(r => r.json())
+        .then(data => console.log(data));
+    }
+    ```
+
+    ```php php
+    $labels = ['spam', 'not-spam'];
+
+    foreach ($labels as $label) {
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/labels');
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      curl_setopt($ch, CURLOPT_POST, 1);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(["name" => $label]));
+      $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+      ];
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      echo curl_exec($ch);
+      curl_close($ch);
+    }
+    ```
+
+    </CodeGroup>
+
+    ```json example response
+    {
+      "name": "spam",
+      "id": "label_2n5a7za51n329v0l"
+    }
+    ```
+  </Step>
+
+  <Step title="Add annotated samples">
+    Upload example comments with their correct labels. Use the label `id` values returned in the previous step. Nyckel begins training as soon as you have samples for at least two labels.
+
+    <CodeGroup>
+
+    ```bash curl
+    # Spam sample
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"data":"Click here for free followers!! 🔥🔥","annotation":{"labelId":"label_2n5a7za51n329v0l"}}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/samples'
+
+    # Not-spam sample
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"data":"Great photo, love the lighting!","annotation":{"labelId":"label_abc456"}}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/samples'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    samples = [
+        {"data": "Click here for free followers!! 🔥🔥", "annotation": {"labelId": "label_2n5a7za51n329v0l"}},
+        {"data": "Great photo, love the lighting!", "annotation": {"labelId": "label_abc456"}},
+        {"data": "DM us to grow your account fast!", "annotation": {"labelId": "label_2n5a7za51n329v0l"}},
+        {"data": "This place looks amazing, where is it?", "annotation": {"labelId": "label_abc456"}},
+    ]
+
+    for sample in samples:
+        result = requests.post(url, headers=headers, json=sample)
+        print(result.json())
+    ```
+
+    ```javascript javascript
+    const url = 'https://www.nyckel.com/v1/functions/<functionId>/samples';
+    const headers = {
+      'Authorization': 'Bearer <accessToken>',
+      'Content-Type': 'application/json'
+    };
+
+    const samples = [
+      { data: "Click here for free followers!! 🔥🔥", annotation: { labelId: "label_2n5a7za51n329v0l" } },
+      { data: "Great photo, love the lighting!", annotation: { labelId: "label_abc456" } },
+    ];
+
+    for (const sample of samples) {
+      fetch(url, { method: 'POST', headers, body: JSON.stringify(sample) })
+        .then(r => r.json())
+        .then(data => console.log(data));
+    }
+    ```
+
+    ```php php
+    $samples = [
+      ["data" => "Click here for free followers!!", "annotation" => ["labelId" => "label_2n5a7za51n329v0l"]],
+      ["data" => "Great photo, love the lighting!", "annotation" => ["labelId" => "label_abc456"]],
+    ];
+
+    foreach ($samples as $sample) {
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/samples');
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      curl_setopt($ch, CURLOPT_POST, 1);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($sample));
+      $headers = [
+        'Authorization: Bearer <accessToken>',
+        'Content-Type: application/json'
+      ];
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      echo curl_exec($ch);
+      curl_close($ch);
+    }
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+      Upload at least 10–20 samples per label to get a useful initial accuracy estimate. More data leads to better models.
+    </Tip>
+  </Step>
+
+  <Step title="Wait for training">
+    Nyckel trains your model automatically in the background. For small datasets this typically takes around 20 seconds. You can check training status in the [console](https://www.nyckel.com/console), or simply proceed to invoke — the API will respond once a model is ready.
+  </Step>
+
+  <Step title="Invoke the function">
+    Call the `/invoke` endpoint with any new text to get a prediction.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST \
+      -H 'Authorization: Bearer <accessToken>' \
+      -H 'Content-Type: application/json' \
+      -d '{"data":"Win a free iPhone, click the link in bio!"}' \
+      'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+    ```
+
+    ```python python
+    import requests
+
+    url = 'https://www.nyckel.com/v1/functions/<functionId>/invoke'
+    headers = {'Authorization': 'Bearer <accessToken>'}
+
+    result = requests.post(url, headers=headers, json={
+        "data": "Win a free iPhone, click the link in bio!"
+    })
+    print(result.json())
+    ```
+
+    ```javascript javascript
+    fetch('https://www.nyckel.com/v1/functions/<functionId>/invoke', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer <accessToken>',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "data": "Win a free iPhone, click the link in bio!"
+      })
+    })
+      .then(response => response.json())
+      .then(data => console.log(data));
+    ```
+
+    ```php php
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, 'https://www.nyckel.com/v1/functions/<functionId>/invoke');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,
+      '{"data":"Win a free iPhone, click the link in bio!"}'
+    );
+
+    $headers = [];
+    $headers[] = 'Authorization: Bearer <accessToken>';
+    $headers[] = 'Content-Type: application/json';
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $result = curl_exec($ch);
+    curl_close($ch);
+    echo $result;
+    ```
+
+    </CodeGroup>
+
+    ```json example response
+    {
+      "labelName": "spam",
+      "labelId": "label_2n5a7za51n329v0l",
+      "confidence": 0.94
+    }
+    ```
+
+    The response includes the predicted `labelName`, its `labelId`, and a `confidence` score between 0 and 1.
+  </Step>
+</Steps>
+
+## Next steps
+
+- Add more annotated samples to improve accuracy
+- Use the `labelCount` query parameter to get the top N predictions with confidence scores
+- See [Model training](/concepts/model-training) for guidance on choosing good training data

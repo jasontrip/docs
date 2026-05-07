@@ -1,0 +1,210 @@
+---
+title: "Detection function sample management endpoints"
+sidebarTitle: "Samples"
+description: "Add and annotate image samples for a Nyckel detection function. Annotations use normalized coordinates — bounding boxes or center points per object."
+---
+
+Image samples for detection functions are the training images you supply. After adding a sample, you annotate it by specifying where each object of interest appears in the image. Annotations use normalized coordinates (fractions of image width/height, ranging 0–1).
+
+All sample endpoints require an `Authorization: Bearer <accessToken>` header.
+
+<Note>
+  Detection sample endpoints use API version `v0.9`. At least 2 annotated images (excluding zero-object images) are required before the model will train.
+</Note>
+
+## Create a sample
+
+`POST /v0.9/functions/{functionId}/samples`
+
+### Send image URL
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token. Format: `Bearer <accessToken>`
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  A URL pointing to the image, or a [data URI](https://en.wikipedia.org/wiki/Data_URI_scheme).
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  Your own unique identifier for this sample.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"data":"https://example.com/scene.jpg","externalId":"img-001"}' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+```python python
+import requests
+
+url = 'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+headers = {'Authorization': 'Bearer <accessToken>'}
+
+result = requests.post(url, headers=headers, json={
+    "data": "https://example.com/scene.jpg",
+    "externalId": "img-001"
+})
+print(result.text)
+```
+</CodeGroup>
+
+### Send image bytes
+
+```bash curl
+curl -X POST \
+  -H 'Authorization: Bearer <accessToken>' \
+  -F 'data=@/path/to/scene.jpg' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+**Create response**
+
+```json
+{
+  "data": "https://pointer/to/image",
+  "externalId": "img-001",
+  "id": "sample_2n5a7za51n329v0l"
+}
+```
+
+## Read a sample
+
+`GET /v0.9/functions/{functionId}/samples/{sampleId}`
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>'
+```
+
+**Response**
+
+<ResponseField name="id" type="string">The sample ID.</ResponseField>
+<ResponseField name="data" type="string">URL or data URI of the image.</ResponseField>
+<ResponseField name="annotation" type="array">
+  Array of annotation objects with label and point locations.
+
+  <Expandable title="Annotation object">
+    <ResponseField name="labelId" type="string">The ID of the located label.</ResponseField>
+    <ResponseField name="points" type="array">
+      Array of `PointAnnotation` objects.
+      Each has `x` and `y` as normalized coordinates (0–1).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+<ResponseField name="prediction" type="array">
+  Array of model prediction objects with label, points, and confidence.
+</ResponseField>
+
+```json
+{
+  "annotation": [
+    {
+      "labelId": "label_2n5a7za51n329v0l",
+      "points": [{ "x": 0.123, "y": 0.789 }]
+    }
+  ],
+  "data": "https://pointer/to/image",
+  "externalId": "img-001",
+  "id": "sample_2n5a7za51n329v0l",
+  "prediction": [
+    {
+      "labelId": "label_2n5a7za51n329v0l",
+      "points": [{ "x": 0.152, "y": 0.811, "confidence": 0.9 }]
+    }
+  ]
+}
+```
+
+## List samples
+
+`GET /v0.9/functions/{functionId}/samples`
+
+<ParamField query="count" type="integer">Maximum number of samples to return.</ParamField>
+<ParamField query="startIndex" type="integer">Zero-based starting index. Defaults to `0`.</ParamField>
+<ParamField query="externalId" type="string">Filter to the sample with this `externalId`.</ParamField>
+<ParamField query="createdBefore" type="string">Return samples created on or before this date (RFC 3339).</ParamField>
+<ParamField query="createdAfter" type="string">Return samples created on or after this date (RFC 3339).</ParamField>
+
+```bash curl
+curl -X GET \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples'
+```
+
+## Delete a sample
+
+`DELETE /v0.9/functions/{functionId}/samples/{sampleId}`
+
+```bash curl
+# Delete by ID
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>'
+
+# Delete by externalId
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples?externalId=<externalId>'
+```
+
+## Annotate a sample
+
+`PUT /v0.9/functions/{functionId}/samples/{sampleId}/annotation`
+
+Sets the object locations for an image sample. The body is an array of annotation objects — one per label — where each entry specifies the list of points where that object appears in the image.
+
+<ParamField body="" type="array" required>
+  Array of annotation objects.
+
+  <Expandable title="Annotation object">
+    <ParamField body="labelId" type="string" required>
+      The ID of the label being annotated.
+    </ParamField>
+    <ParamField body="points" type="array" required>
+      Array of `PointAnnotation` objects, each with:
+      - `x` — normalized horizontal position (0 = left, 1 = right)
+      - `y` — normalized vertical position (0 = top, 1 = bottom)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+```bash curl
+curl -X PUT \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '[{"labelId":"label_2n5a7za51n329v0l","points":[{"x":0.123,"y":0.789}]}]' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
+
+**Response**
+
+```json
+[
+  {
+    "labelId": "label_2n5a7za51n329v0l",
+    "points": [{ "x": 0.123, "y": 0.789 }]
+  }
+]
+```
+
+<Tip>
+  To annotate a "zero-object" image (an image where no objects appear), send an empty array: `[]`. This is valid and tells the model the image is a negative example.
+</Tip>
+
+## Unannotate a sample
+
+`DELETE /v0.9/functions/{functionId}/samples/{sampleId}/annotation`
+
+Removes all annotations from the sample.
+
+```bash curl
+curl -X DELETE \
+  -H 'Authorization: Bearer <accessToken>' \
+  'https://www.nyckel.com/v0.9/functions/<functionId>/samples/<sampleId>/annotation'
+```
